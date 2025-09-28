@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useAuth } from './hooks/useAuth';
+import LoginPage from './components/auth/LoginPage';
 import Navigation from './components/Navigation';
 import Dashboard from './pages/Dashboard';
 import MerchantList from './pages/MerchantList';
@@ -12,6 +14,14 @@ import SystemSettings from './pages/SystemSettings';
 export default function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [selectedMerchantId, setSelectedMerchantId] = useState<string | null>(null);
+  const { isAuthenticated, adminData, loading, login, logout } = useAuth();
+
+  const handleLoginSuccess = (admin: any) => {
+    const token = localStorage.getItem('admin_token');
+    if (token) {
+      login(admin, token);
+    }
+  };
 
   const renderPage = () => {
     switch (currentPage) {
@@ -37,6 +47,18 @@ export default function App() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation 
@@ -44,6 +66,8 @@ export default function App() {
         onPageChange={setCurrentPage} 
         selectedMerchantId={selectedMerchantId}
         onBackToMerchants={() => setSelectedMerchantId(null)}
+        adminData={adminData}
+        onLogout={logout}
       />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {renderPage()}

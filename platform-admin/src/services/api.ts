@@ -13,9 +13,13 @@ class ApiService {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     
+    // 取得認證 token
+    const token = localStorage.getItem('admin_token');
+    
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
         ...options.headers,
       },
       ...options,
@@ -25,6 +29,12 @@ class ApiService {
       const response = await fetch(url, config);
       
       if (!response.ok) {
+        if (response.status === 401) {
+          // Token 過期或無效，清除本地儲存
+          localStorage.removeItem('admin_token');
+          localStorage.removeItem('admin_data');
+          window.location.reload();
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       

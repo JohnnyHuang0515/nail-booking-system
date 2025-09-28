@@ -64,19 +64,23 @@ sleep 5
 # 啟動前端
 echo "🎨 啟動前端服務..."
 
+# 獲取專案根目錄
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
 # 商家後台
 echo "啟動商家後台 (端口 3000)..."
-cd frontend/admin-panel && npm start &
+cd "$PROJECT_ROOT/frontend/admin-panel" && npm start &
 ADMIN_PID=$!
 
 # 客戶預約
 echo "啟動客戶預約 (端口 3001)..."
-cd ../customer-booking && npm start &
+cd "$PROJECT_ROOT/frontend/customer-booking" && npm start &
 CUSTOMER_PID=$!
 
 # 平台管理員
 echo "啟動平台管理員 (端口 3002)..."
-cd ../../platform-admin && npm start &
+cd "$PROJECT_ROOT/platform-admin" && npm start &
 PLATFORM_PID=$!
 
 # 等待前端啟動

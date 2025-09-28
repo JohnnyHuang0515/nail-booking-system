@@ -43,7 +43,7 @@ interface Alert {
 }
 
 const MonitoringOverview: React.FC = () => {
-  const [monitoringData, setMonitoringData] = useState<MonitoringData | null>({
+  const [monitoringData, setMonitoringData] = useState<MonitoringData>({
     platform_health: {
       healthy_merchants: 0,
       warning_merchants: 0,
@@ -68,44 +68,29 @@ const MonitoringOverview: React.FC = () => {
       const response = await fetch('/api/v1/monitoring/overview');
       if (response.ok) {
         const data = await response.json();
-        setMonitoringData(data);
-      } else {
-        console.error('取得監控總覽失敗');
-        // 設置預設值以避免錯誤
+        // 安全地合併 API 資料與預設值
         setMonitoringData({
           platform_health: {
-            healthy_merchants: 0,
-            warning_merchants: 0,
-            critical_merchants: 0,
-            overall_health_score: 0
+            healthy_merchants: data?.platform_health?.healthy_merchants ?? 0,
+            warning_merchants: data?.platform_health?.warning_merchants ?? 0,
+            critical_merchants: data?.platform_health?.critical_merchants ?? 0,
+            overall_health_score: data?.platform_health?.overall_health_score ?? 0
           },
           system_statistics: {
-            total_users: 0,
-            total_appointments: 0,
-            total_revenue: 0,
-            system_uptime: '0%'
+            total_users: data?.system_statistics?.total_users ?? 0,
+            total_appointments: data?.system_statistics?.total_appointments ?? 0,
+            total_revenue: data?.system_statistics?.total_revenue ?? 0,
+            system_uptime: data?.system_statistics?.system_uptime ?? '0%'
           },
-          error_leaderboard: []
+          error_leaderboard: data?.error_leaderboard ?? []
         });
+      } else {
+        console.error('取得監控總覽失敗');
+        // 保持當前狀態，不重置為預設值
       }
     } catch (error) {
       console.error('網路錯誤');
-      // 設置預設值以避免錯誤
-      setMonitoringData({
-        platform_health: {
-          healthy_merchants: 0,
-          warning_merchants: 0,
-          critical_merchants: 0,
-          overall_health_score: 0
-        },
-        system_statistics: {
-          total_users: 0,
-          total_appointments: 0,
-          total_revenue: 0,
-          system_uptime: '0%'
-        },
-        error_leaderboard: []
-      });
+      // 保持當前狀態，不重置為預設值
     } finally {
       setLoading(false);
     }
@@ -251,28 +236,26 @@ const MonitoringOverview: React.FC = () => {
 
       <div className="grid gap-4 md:grid-cols-2">
         {/* 錯誤榜 */}
-        {monitoringData && (
-          <Card>
-            <CardHeader>
-              <CardTitle>錯誤榜</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {monitoringData.error_leaderboard.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium leading-none">{item.merchant_id}</p>
-                      <p className="text-sm text-muted-foreground">{item.error_count} 次錯誤</p>
-                    </div>
-                    <div className="text-sm font-medium text-red-600">
-                      {(item.error_rate * 100).toFixed(2)}%
-                    </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>錯誤榜</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {monitoringData.error_leaderboard.map((item, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium leading-none">{item.merchant_id}</p>
+                    <p className="text-sm text-muted-foreground">{item.error_count} 次錯誤</p>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                  <div className="text-sm font-medium text-red-600">
+                    {(item.error_rate * 100).toFixed(2)}%
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* 告警列表 */}
         <Card>
