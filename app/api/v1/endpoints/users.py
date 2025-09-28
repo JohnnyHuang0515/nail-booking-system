@@ -1,101 +1,188 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 import uuid
 from pydantic import BaseModel
 
-from app.infrastructure.database.session import get_db
+from app.infrastructure.database.session import get_db_session, get_db
 from app.domain.membership.models import User as DomainUser
-from app.infrastructure.repositories.sql_user_repository import SqlUserRepository
+from app.infrastructure.repositories.sql_user_repository import SQLUserRepository
+from app.infrastructure.repositories.sql_merchant_repository import SQLMerchantRepository
 from app.infrastructure.database.models import User as OrmUser
+from app.context import RequestContext
+from app.liff_auth import liff_security_middleware
 
 router = APIRouter()
 
 
-class LoginRequest(BaseModel):
-    line_user_id: str
-    name: str = None
+class LIFFLoginRequest(BaseModel):
+    """LIFF 登入請求"""
+    id_token: str
+    access_token: Optional[str] = None
 
 
 class UserCreate(BaseModel):
+    """創建用戶請求"""
     name: str
     phone: str = None
-    line_user_id: str = None
 
 
 class UserUpdate(BaseModel):
+    """更新用戶請求"""
     name: str = None
     phone: str = None
 
 
-@router.post("/users/login", response_model=DomainUser)
-async def login_with_line(request: LoginRequest, db: Session = Depends(get_db)):
-    """Login or register a user with LINE User ID."""
+class UserResponse(BaseModel):
+    """用戶回應"""
+    id: str
+    line_user_id: str
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    merchant_id: str
+    merchant_name: str
+    created_at: str
+
+    class Config:
+        from_attributes = True
+
+
+@router.post("/users/liff-login", response_model=UserResponse)
+async def liff_login(
+    request: LIFFLoginRequest,
+    merchant_id: str,
+    db_session = Depends(get_db_session)
+):
+    """LIFF 登入 - 使用 idToken 驗證身分"""
     try:
-        # 先嘗試找到現有用戶
-        orm_user = db.query(OrmUser).filter(OrmUser.line_user_id == request.line_user_id).first()
+        merchant_uuid = uuid.UUID(merchant_id)
         
-        if orm_user:
-            # 用戶存在，更新名稱（如果提供）
-            if request.name and request.name != orm_user.name:
-                orm_user.name = request.name
-                db.commit()
-            
-            return DomainUser(
-                id=orm_user.id,
-                line_user_id=orm_user.line_user_id,
-                name=orm_user.name,
-                phone=orm_user.phone
-            )
-        else:
-            # 用戶不存在，創建新用戶
-            new_user = DomainUser(
-                line_user_id=request.line_user_id,
-                name=request.name
-            )
-            
-            orm_user = OrmUser(
-                id=new_user.id,
-                line_user_id=new_user.line_user_id,
-                name=new_user.name,
-                phone=new_user.phone
-            )
-            
-            db.add(orm_user)
-            db.commit()
-            db.refresh(orm_user)
-            
-            return DomainUser(
-                id=orm_user.id,
-                line_user_id=orm_user.line_user_id,
-                name=orm_user.name,
-                phone=orm_user.phone
-            )
-            
+        # 驗證 LIFF token 和取得用戶資訊
+        auth_result = await liff_security_middleware.verify_request(
+            id_token=request.id_token,
+            merchant_id=merchant_uuid,
+            access_token=request.access_token
+        )
+        
+        if not auth_result:
+            raise HTTPException(status_code=401, detail="LIFF 驗證失敗")
+        
+        # 取得商家資訊
+        merchant_repo = SQLMerchantRepository(db_session)
+        merchant = merchant_repo.find_by_id(merchant_uuid)
+        
+        if not merchant:
+            raise HTTPException(status_code=404, detail="找不到指定的商家")
+        
+        # 取得用戶資訊
+        user_repo = SQLUserRepository(db_session)
+        user = user_repo.find_by_id(uuid.UUID(auth_result["user_id"]))
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="找不到用戶")
+        
+        return UserResponse(
+            id=str(user.id),
+            line_user_id=user.line_user_id,
+            name=user.name,
+            phone=user.phone,
+            merchant_id=str(merchant_uuid),
+            merchant_name=merchant.name,
+            created_at=user.created_at.isoformat()
+        )
+        
+    except ValueError:
+        raise HTTPException(status_code=400, detail="無效的商家ID格式")
     except Exception as e:
-        print(f"Login error: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        print(f"LIFF 登入錯誤: {e}")
+        raise HTTPException(status_code=500, detail="內部伺服器錯誤")
 
 
-@router.get("/users", response_model=List[DomainUser])
-async def list_users(db: Session = Depends(get_db)):
-    """Get all users."""
+@router.post("/users/login", response_model=UserResponse)
+async def legacy_login_with_line(
+    line_user_id: str,
+    name: Optional[str] = None,
+    merchant_id: str = None,
+    db_session = Depends(get_db_session)
+):
+    """傳統 LINE 登入（向後兼容）"""
     try:
-        # 直接查詢資料庫獲取所有用戶
-        orm_users = db.query(OrmUser).all()
-        users = []
-        for orm_user in orm_users:
-            user = DomainUser(
-                id=orm_user.id,
-                line_user_id=orm_user.line_user_id,
-                name=orm_user.name,
-                phone=orm_user.phone
-            )
-            users.append(user)
-        return users
+        if not merchant_id:
+            raise HTTPException(status_code=400, detail="缺少商家ID")
+        
+        merchant_uuid = uuid.UUID(merchant_id)
+        
+        # 取得或創建用戶
+        user_repo = SQLUserRepository(db_session)
+        user = user_repo.get_or_create_by_line_user_id(merchant_uuid, line_user_id)
+        
+        # 更新用戶名稱（如果提供）
+        if name and name != user.name:
+            user.name = name
+            db_session.commit()
+        
+        # 取得商家資訊
+        merchant_repo = SQLMerchantRepository(db_session)
+        merchant = merchant_repo.find_by_id(merchant_uuid)
+        
+        if not merchant:
+            raise HTTPException(status_code=404, detail="找不到指定的商家")
+        
+        return UserResponse(
+            id=str(user.id),
+            line_user_id=user.line_user_id,
+            name=user.name,
+            phone=user.phone,
+            merchant_id=str(merchant_uuid),
+            merchant_name=merchant.name,
+            created_at=user.created_at.isoformat()
+        )
+        
+    except ValueError:
+        raise HTTPException(status_code=400, detail="無效的商家ID格式")
     except Exception as e:
-        print(f"Users error: {e}")
-        return []
+        print(f"傳統登入錯誤: {e}")
+        raise HTTPException(status_code=500, detail="內部伺服器錯誤")
+
+
+@router.get("/users", response_model=List[UserResponse])
+async def list_users(
+    merchant_id: str,
+    db_session = Depends(get_db_session)
+):
+    """取得指定商家的所有用戶"""
+    try:
+        merchant_uuid = uuid.UUID(merchant_id)
+        
+        # 取得商家資訊
+        merchant_repo = SQLMerchantRepository(db_session)
+        merchant = merchant_repo.find_by_id(merchant_uuid)
+        
+        if not merchant:
+            raise HTTPException(status_code=404, detail="找不到指定的商家")
+        
+        # 取得該商家的所有用戶
+        user_repo = SQLUserRepository(db_session)
+        users = user_repo.list_by_merchant(merchant_uuid)
+        
+        return [
+            UserResponse(
+                id=str(user.id),
+                line_user_id=user.line_user_id,
+                name=user.name,
+                phone=user.phone,
+                merchant_id=str(merchant_uuid),
+                merchant_name=merchant.name,
+                created_at=user.created_at.isoformat()
+            )
+            for user in users
+        ]
+        
+    except ValueError:
+        raise HTTPException(status_code=400, detail="無效的商家ID格式")
+    except Exception as e:
+        print(f"取得用戶列表錯誤: {e}")
+        raise HTTPException(status_code=500, detail="內部伺服器錯誤")
 
 
 @router.get("/users/{user_id}", response_model=DomainUser)

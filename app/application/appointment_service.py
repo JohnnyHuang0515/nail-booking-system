@@ -1,3 +1,4 @@
+from typing import List
 import uuid
 from datetime import date, time
 from app.domain.booking.models import Appointment, AppointmentStatus
@@ -8,7 +9,7 @@ class AppointmentService:
     def __init__(self, appointment_repo: AbstractAppointmentRepository):
         self.appointment_repo = appointment_repo
 
-    def get_appointments_by_date_range(self, start_date: date, end_date: date) -> list[Appointment]:
+    def get_appointments_by_date_range(self, start_date: date, end_date: date) -> List[Appointment]:
         # This requires a new repository method.
         return self.appointment_repo.list_by_date_range(start_date, end_date)
 

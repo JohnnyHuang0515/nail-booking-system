@@ -1,3 +1,4 @@
+from typing import List
 import abc
 import uuid
 from app.domain.booking.models import Service
@@ -17,7 +18,7 @@ class AbstractServiceRepository(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def list(self) -> list[Service]:
+    def list(self) -> List[Service]:
         """Lists all services."""
         raise NotImplementedError
 

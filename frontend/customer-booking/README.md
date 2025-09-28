@@ -38,3 +38,4 @@ npm test
 建置完成後，將 `build/` 目錄部署到您的網頁伺服器。
 
 建議部署到主域名如：`yourdomain.com` 或 `booking.yourdomain.com`
+

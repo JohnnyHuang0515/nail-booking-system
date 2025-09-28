@@ -1,3 +1,4 @@
+from typing import List
 from datetime import date, time, datetime, timezone
 
 from app.domain.booking.repository import AbstractAppointmentRepository
@@ -18,7 +19,7 @@ class BookingService:
         self.business_hour_repo = business_hour_repo
         self.time_off_repo = time_off_repo
 
-    def get_available_slots(self, for_date: date) -> list[time]:
+    def get_available_slots(self, for_date: date) -> List[time]:
         """
         Calculates available appointment slots for a given date by checking
         business hours, existing appointments, and time-off periods.

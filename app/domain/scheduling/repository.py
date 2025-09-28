@@ -1,3 +1,4 @@
+from typing import List
 import abc
 import uuid
 from datetime import date
@@ -27,12 +28,12 @@ class AbstractTimeOffRepository(abc.ABC):
     """Abstract interface for a time off repository."""
 
     @abc.abstractmethod
-    def list_by_date(self, for_date: date) -> list[TimeOff]:
+    def list_by_date(self, for_date: date) -> List[TimeOff]:
         """Lists all time off periods that overlap with a specific date."""
         raise NotImplementedError
 
     @abc.abstractmethod
-    def list_all(self) -> list[TimeOff]:
+    def list_all(self) -> List[TimeOff]:
         """Lists all time off periods."""
         raise NotImplementedError
 

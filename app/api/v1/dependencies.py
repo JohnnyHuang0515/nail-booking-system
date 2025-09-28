@@ -13,7 +13,7 @@ from app.domain.scheduling.repository import AbstractBusinessHourRepository, Abs
 from app.domain.transaction.repository import AbstractTransactionRepository
 from app.infrastructure.database.session import SessionLocal
 from app.infrastructure.repositories.sql_appointment_repository import SqlAppointmentRepository
-from app.infrastructure.repositories.sql_business_hour_repository import SqlBusinessHourRepository
+from app.infrastructure.repositories.sql_business_hour_repository import SQLBusinessHourRepository
 from app.infrastructure.repositories.sql_time_off_repository import SqlTimeOffRepository
 from app.infrastructure.repositories.sql_service_repository import SqlServiceRepository
 from app.infrastructure.repositories.sql_transaction_repository import SqlTransactionRepository
@@ -35,7 +35,7 @@ def get_appointment_repo(db: Session = Depends(get_db)) -> AbstractAppointmentRe
 
 def get_business_hour_repo(db: Session = Depends(get_db)) -> AbstractBusinessHourRepository:
     """FastAPI dependency to get a business hour repository."""
-    return SqlBusinessHourRepository(db)
+    return SQLBusinessHourRepository(db)
 
 
 def get_time_off_repo(db: Session = Depends(get_db)) -> AbstractTimeOffRepository:

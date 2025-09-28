@@ -29,3 +29,4 @@ import '../shared/styles/globals.css';
 ## 維護
 
 當需要更新共用組件時，請同時更新所有引用此組件庫的應用。
+

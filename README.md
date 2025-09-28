@@ -1,84 +1,100 @@
 # 美甲預約系統
 
-這是一個完整的美甲預約系統，包含管理後台和客戶預約頁面兩個獨立的前端應用。
+多租戶美甲預約管理系統，支援商家管理、客戶預約和平台管理員功能。
 
-## 項目結構
+## 系統架構
+
+### 前端應用
+- **商家後台** (`frontend/admin-panel`) - 商家管理介面
+- **客戶預約** (`customer-booking`) - 客戶預約介面  
+- **平台管理員** (`platform-admin`) - 平台管理介面
+
+### 後端服務
+- **FastAPI 後端** (`app/`) - RESTful API 服務
+- **PostgreSQL 資料庫** - 多租戶資料存儲
+
+## 快速開始
+
+### 1. 環境準備
+```bash
+# 安裝 Python 依賴
+pip install -r requirements.txt
+
+# 啟動 PostgreSQL 資料庫
+./archive/scripts/setup_postgresql.sh
+```
+
+### 2. 啟動服務
+
+**方式一：一鍵啟動所有服務**
+```bash
+./scripts/start_all.sh
+```
+
+**方式二：分步啟動**
+```bash
+# 啟動後端
+./scripts/start_backend.sh
+
+# 啟動前端（新終端）
+./scripts/start-frontends.sh
+```
+
+### 3. 訪問應用
+- 商家後台: http://localhost:3000
+- 客戶預約: http://localhost:3001
+- 平台管理員: http://localhost:3002
+- API 文檔: http://localhost:8000/docs
+
+### 4. 停止服務
+```bash
+./scripts/stop.sh
+```
+
+## 專案結構
 
 ```
 美甲預約系統/
-├── admin-panel/          # 管理後台 (端口 3000)
-├── customer-booking/      # 客戶預約頁面 (端口 3001)
-├── frontend/             # 原始統一前端 (已拆分)
-└── package.json          # 根目錄配置
+├── app/                    # 後端 API 服務
+├── frontend/              # 前端應用
+│   └── admin-panel/       # 商家後台
+├── customer-booking/      # 客戶預約前端
+├── platform-admin/        # 平台管理員前端
+├── scripts/               # 啟動腳本
+├── docs/                  # 專案文檔
+├── archive/               # 歷史檔案
+└── requirements.txt       # Python 依賴
 ```
 
-## 功能說明
+## 主要功能
 
-### 管理後台 (admin-panel)
-- **端口**: 3000
-- **功能**: 
-  - 儀表板
-  - 行事曆管理
-  - 預約管理
-  - 時段管理
-  - 服務管理
-  - 顧客管理
+### 商家功能
+- 服務項目管理
+- 預約時間管理
+- 客戶資料管理
+- 營業時間設定
 
-### 客戶預約頁面 (customer-booking)
-- **端口**: 3001
-- **功能**:
-  - 日期選擇
-  - 時段選擇
-  - 服務選擇
-  - 預約確認
-  - 預約成功頁面
+### 客戶功能
+- 線上預約
+- 預約查詢
+- 服務瀏覽
 
-## 安裝和運行
-
-### 1. 安裝所有依賴
-```bash
-npm run install:all
-```
-
-### 2. 運行應用
-
-#### 同時運行兩個應用
-```bash
-npm start
-```
-
-#### 分別運行
-```bash
-# 運行管理後台 (端口 3000)
-npm run start:admin
-
-# 運行客戶預約頁面 (端口 3001)
-npm run start:customer
-```
-
-### 3. 構建應用
-```bash
-# 構建所有應用
-npm run build
-
-# 分別構建
-npm run build:admin
-npm run build:customer
-```
-
-## 訪問地址
-
-- 管理後台: http://localhost:3000
-- 客戶預約: http://localhost:3001
+### 平台管理員功能
+- 商家生命週期管理
+- 系統監控
+- 資料報表
+- 安全治理
 
 ## 技術棧
 
-- React 18
-- TypeScript
-- Tailwind CSS
-- Radix UI
-- Lucide React Icons
+- **後端**: FastAPI, SQLAlchemy, PostgreSQL
+- **前端**: React, TypeScript, Ant Design
+- **部署**: Docker, Nginx
 
-## 開發說明
+## 開發指南
 
-每個應用都是獨立的React應用，可以單獨開發和部署。共享的UI組件位於各自的 `src/components/ui/` 目錄中。
+詳細開發文檔請參考 `docs/` 目錄：
+- `ERD_DOCUMENTATION.md` - 資料庫設計
+- `THREE_FRONTEND_ARCHITECTURE.md` - 前端架構
+- `MULTI_MERCHANT_GUIDE.md` - 多租戶指南
+- `LIFF_INTEGRATION_GUIDE.md` - LINE 整合指南

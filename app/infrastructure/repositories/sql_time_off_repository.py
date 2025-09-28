@@ -1,3 +1,4 @@
+from typing import List
 import uuid
 from datetime import date, datetime, time
 from sqlalchemy.orm import Session
@@ -12,7 +13,7 @@ class SqlTimeOffRepository(AbstractTimeOffRepository):
     def __init__(self, session: Session):
         self.session = session
 
-    def list_by_date(self, for_date: date) -> list[DomainTimeOff]:
+    def list_by_date(self, for_date: date) -> List[DomainTimeOff]:
         """
         Lists all time off periods that overlap with the given date.
         """
@@ -26,7 +27,7 @@ class SqlTimeOffRepository(AbstractTimeOffRepository):
         
         return [DomainTimeOff.model_validate(orm_to) for orm_to in orm_time_offs]
 
-    def list_all(self) -> list[DomainTimeOff]:
+    def list_all(self) -> List[DomainTimeOff]:
         """
         Lists all time off periods.
         """

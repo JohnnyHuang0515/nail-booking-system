@@ -1,3 +1,4 @@
+from typing import List
 import uuid
 from datetime import date, datetime
 from app.domain.scheduling.models import BusinessHour, TimeOff
@@ -15,7 +16,7 @@ class ScheduleService:
 
     # ... (BusinessHour methods remain the same)
 
-    def get_all_business_hours(self) -> list[BusinessHour]:
+    def get_all_business_hours(self) -> List[BusinessHour]:
         all_hours = []
         for i in range(7):
             hours = self.business_hour_repo.get_by_day(i)
@@ -23,7 +24,7 @@ class ScheduleService:
                 all_hours.append(hours)
         return all_hours
 
-    def set_business_hours(self, hours: list[BusinessHour]) -> list[BusinessHour]:
+    def set_business_hours(self, hours: list[BusinessHour]) -> List[BusinessHour]:
         self.business_hour_repo.delete_all()
         for hour in hours:
             self.business_hour_repo.add(hour)
@@ -32,10 +33,10 @@ class ScheduleService:
 
     # --- TimeOff Methods ---
 
-    def get_time_offs_by_date(self, for_date: date) -> list[TimeOff]:
+    def get_time_offs_by_date(self, for_date: date) -> List[TimeOff]:
         return self.time_off_repo.list_by_date(for_date)
 
-    def get_all_time_offs(self) -> list[TimeOff]:
+    def get_all_time_offs(self) -> List[TimeOff]:
         return self.time_off_repo.list_all()
 
     def add_time_off(self, start_datetime: datetime, end_datetime: datetime, reason: str | None) -> TimeOff:

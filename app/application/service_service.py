@@ -1,3 +1,4 @@
+from typing import List
 import uuid
 from app.domain.booking.models import Service
 from app.domain.booking.service_repository import AbstractServiceRepository
@@ -7,7 +8,7 @@ class ServiceService:
     def __init__(self, service_repo: AbstractServiceRepository):
         self.service_repo = service_repo
 
-    def get_all_services(self) -> list[Service]:
+    def get_all_services(self) -> List[Service]:
         return self.service_repo.list()
 
     def create_service(self, name: str, price: float, duration_minutes: int, is_active: bool = True) -> Service:
