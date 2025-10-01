@@ -21,20 +21,50 @@ if ! command -v npm &> /dev/null; then
     exit 1
 fi
 
+if ! command -v docker &> /dev/null; then
+    echo "❌ Docker 未安裝"
+    exit 1
+fi
+
 # 設置環境變數
 export DATABASE_URL="postgresql://user:password@localhost/nail_booking_db"
+
+# 啟動 PostgreSQL 資料庫
+echo "🗄️ 啟動 PostgreSQL 資料庫..."
+if ! docker ps | grep -q "nail-booking-postgres"; then
+    echo "啟動 PostgreSQL 容器..."
+    docker run -d \
+        --name nail-booking-postgres \
+        -e POSTGRES_DB=nail_booking_db \
+        -e POSTGRES_USER=user \
+        -e POSTGRES_PASSWORD=password \
+        -p 5432:5432 \
+        postgres:13
+    echo "⏳ 等待資料庫啟動..."
+    sleep 10
+else
+    echo "✅ PostgreSQL 容器已在運行"
+fi
 
 echo "📋 檢查資料庫連接..."
 python3 -c "
 import psycopg2
-try:
-    conn = psycopg2.connect('$DATABASE_URL')
-    conn.close()
-    print('✅ 資料庫連接正常')
-except Exception as e:
-    print(f'❌ 資料庫連接失敗: {e}')
-    print('請先啟動 PostgreSQL 服務')
-    exit(1)
+import time
+max_retries = 5
+for i in range(max_retries):
+    try:
+        conn = psycopg2.connect('$DATABASE_URL')
+        conn.close()
+        print('✅ 資料庫連接正常')
+        break
+    except Exception as e:
+        if i == max_retries - 1:
+            print(f'❌ 資料庫連接失敗: {e}')
+            print('請檢查 PostgreSQL 容器狀態')
+            exit(1)
+        else:
+            print(f'⏳ 資料庫連接中... ({i+1}/{max_retries})')
+            time.sleep(2)
 "
 
 if [ $? -ne 0 ]; then
@@ -97,6 +127,11 @@ echo "   平台管理員:   http://localhost:3002"
 echo "   後端 API:     http://localhost:8000"
 echo "   API 文檔:     http://localhost:8000/docs"
 echo ""
+echo "🗄️ 資料庫資訊："
+echo "   PostgreSQL:   localhost:5432"
+echo "   資料庫名:     nail_booking_db"
+echo "   使用者:       user"
+echo ""
 echo "按 Ctrl+C 停止所有服務"
 
 # 清理函數
@@ -104,6 +139,17 @@ cleanup() {
     echo ""
     echo "🛑 停止所有服務..."
     kill $BACKEND_PID $ADMIN_PID $CUSTOMER_PID $PLATFORM_PID 2>/dev/null || true
+    
+    # 詢問是否停止資料庫容器
+    echo ""
+    read -p "是否停止 PostgreSQL 容器? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo "🛑 停止 PostgreSQL 容器..."
+        docker stop nail-booking-postgres 2>/dev/null || true
+        docker rm nail-booking-postgres 2>/dev/null || true
+    fi
+    
     exit 0
 }
 
