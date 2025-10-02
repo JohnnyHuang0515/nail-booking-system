@@ -30,6 +30,7 @@ class Merchant(Base):
     transactions = relationship("Transaction", back_populates="merchant", cascade="all, delete-orphan")
     business_hours = relationship("BusinessHour", back_populates="merchant", cascade="all, delete-orphan")
     time_offs = relationship("TimeOff", back_populates="merchant", cascade="all, delete-orphan")
+    billing_records = relationship("BillingRecord", back_populates="merchant", cascade="all, delete-orphan")
 
 
 class User(Base):
@@ -81,14 +82,20 @@ class Appointment(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     merchant_id = Column(UUID(as_uuid=True), ForeignKey("merchants.id"), nullable=False)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)  # 可選，支援直接預約
     service_id = Column(UUID(as_uuid=True), ForeignKey("services.id"), nullable=False)
     branch_id = Column(UUID(as_uuid=True), nullable=True)  # 可選分店ID
     staff_id = Column(UUID(as_uuid=True), nullable=True)   # 可選員工ID
     appointment_date = Column(Date, nullable=False)
     appointment_time = Column(Time, nullable=False)
-    status = Column(SQLAlchemyEnum(AppointmentStatus), nullable=False, default=AppointmentStatus.BOOKED)
+    status = Column(SQLAlchemyEnum(AppointmentStatus), nullable=False, default=AppointmentStatus.PENDING)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # 直接預約欄位 (當沒有user_id時使用)
+    customer_name = Column(String(100), nullable=True)
+    customer_phone = Column(String(20), nullable=True)
+    customer_email = Column(String(100), nullable=True)
+    notes = Column(Text, nullable=True)
 
     # 多租戶唯一約束：同一商家、分店、時間、員工的時段唯一
     __table_args__ = (
@@ -151,3 +158,23 @@ class TimeOff(Base):
 
     # 關聯
     merchant = relationship("Merchant", back_populates="time_offs")
+
+
+class BillingRecord(Base):
+    """帳務記錄"""
+    __tablename__ = "billing_records"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    merchant_id = Column(UUID(as_uuid=True), ForeignKey("merchants.id"), nullable=False)
+    plan = Column(String(100), nullable=False)  # 方案名稱
+    amount = Column(Numeric(10, 2), nullable=False)  # 金額
+    status = Column(String(20), nullable=False, default="pending")  # paid, pending, overdue
+    billing_period_start = Column(Date, nullable=False)  # 帳單期間開始
+    billing_period_end = Column(Date, nullable=False)  # 帳單期間結束
+    due_date = Column(Date, nullable=False)  # 到期日
+    paid_at = Column(DateTime(timezone=True), nullable=True)  # 付款日期
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    # 關聯
+    merchant = relationship("Merchant", back_populates="billing_records")

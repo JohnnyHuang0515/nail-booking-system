@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, MessageSquare, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import apiService from '../services/api';
 
 interface Ticket {
   id: string;
@@ -39,62 +40,18 @@ const TicketCenter: React.FC = () => {
   const fetchTickets = async () => {
     try {
       setLoading(true);
-      // Mock data for now
-      const mockTickets: Ticket[] = [
-        {
-          id: '1',
-          title: 'LINE Webhook 無法接收訊息',
-          description: '商家回報LINE Webhook無法正常接收客戶訊息，請協助檢查。',
-          status: 'open',
-          priority: 'high',
-          category: '技術問題',
-          merchant_id: '123e4567-e89b-12d3-a456-426614174000',
-          merchant_name: '美甲工作室A',
-          created_at: '2024-01-15T10:30:00Z',
-          updated_at: '2024-01-15T10:30:00Z',
-          messages: [
-            {
-              id: '1',
-              content: '商家回報LINE Webhook無法正常接收客戶訊息，請協助檢查。',
-              sender: '美甲工作室A',
-              sender_type: 'user',
-              created_at: '2024-01-15T10:30:00Z'
-            }
-          ]
-        },
-        {
-          id: '2',
-          title: '預約系統時間設定問題',
-          description: '希望調整營業時間設定，但系統顯示錯誤。',
-          status: 'in_progress',
-          priority: 'medium',
-          category: '功能需求',
-          merchant_id: '123e4567-e89b-12d3-a456-426614174001',
-          merchant_name: '美甲工作室B',
-          created_at: '2024-01-14T15:20:00Z',
-          updated_at: '2024-01-15T09:15:00Z',
-          assigned_to: 'admin@platform.com',
-          messages: [
-            {
-              id: '1',
-              content: '希望調整營業時間設定，但系統顯示錯誤。',
-              sender: '美甲工作室B',
-              sender_type: 'user',
-              created_at: '2024-01-14T15:20:00Z'
-            },
-            {
-              id: '2',
-              content: '已收到您的問題，正在檢查系統設定。',
-              sender: 'admin@platform.com',
-              sender_type: 'admin',
-              created_at: '2024-01-15T09:15:00Z'
-            }
-          ]
-        }
-      ];
-      setTickets(mockTickets);
+      const ticketsData = await apiService.getTickets() as Ticket[];
+      // 確保每個工單都有 messages 陣列
+      const processedTickets = Array.isArray(ticketsData) 
+        ? ticketsData.map(ticket => ({
+            ...ticket,
+            messages: ticket.messages || []
+          }))
+        : [];
+      setTickets(processedTickets);
     } catch (error) {
-      console.error('取得工單失敗:', error);
+      console.error('載入工單失敗:', error);
+      setTickets([]);
     } finally {
       setLoading(false);
     }
@@ -133,30 +90,10 @@ const TicketCenter: React.FC = () => {
     if (!newMessage.trim()) return;
 
     try {
-      // Mock API call
-      const message: TicketMessage = {
-        id: Date.now().toString(),
-        content: newMessage,
-        sender: 'admin@platform.com',
-        sender_type: 'admin',
-        created_at: new Date().toISOString()
-      };
-
-      setTickets(prev => prev.map(ticket => 
-        ticket.id === ticketId 
-          ? { ...ticket, messages: [...ticket.messages, message], updated_at: new Date().toISOString() }
-          : ticket
-      ));
-
-      if (selectedTicket?.id === ticketId) {
-        setSelectedTicket(prev => prev ? {
-          ...prev,
-          messages: [...prev.messages, message],
-          updated_at: new Date().toISOString()
-        } : null);
-      }
-
+      await apiService.sendTicketMessage(ticketId, newMessage);
       setNewMessage('');
+      // 重新載入工單以獲取最新訊息
+      await fetchTickets();
     } catch (error) {
       console.error('發送訊息失敗:', error);
     }
@@ -218,7 +155,8 @@ const TicketCenter: React.FC = () => {
                 <p className="mt-2 text-sm text-gray-500">載入中...</p>
               </div>
             ) : (
-              filteredTickets.map((ticket) => (
+              filteredTickets && filteredTickets.length > 0 ? (
+                filteredTickets.map((ticket) => (
                 <div
                   key={ticket.id}
                   onClick={() => setSelectedTicket(ticket)}
@@ -246,7 +184,13 @@ const TicketCenter: React.FC = () => {
                     {new Date(ticket.updated_at).toLocaleString('zh-TW')}
                   </p>
                 </div>
-              ))
+                ))
+              ) : (
+                <div className="p-4 text-center">
+                  <MessageSquare className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">暫無工單</p>
+                </div>
+              )
             )}
           </div>
         </div>
@@ -278,27 +222,34 @@ const TicketCenter: React.FC = () => {
               {/* 訊息列表 */}
               <div className="flex-1 p-6 overflow-y-auto">
                 <div className="space-y-4">
-                  {selectedTicket.messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.sender_type === 'admin' ? 'justify-end' : 'justify-start'}`}
-                    >
+                  {selectedTicket.messages && selectedTicket.messages.length > 0 ? (
+                    selectedTicket.messages.map((message) => (
                       <div
-                        className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                          message.sender_type === 'admin'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-900'
-                        }`}
+                        key={message.id}
+                        className={`flex ${message.sender_type === 'admin' ? 'justify-end' : 'justify-start'}`}
                       >
-                        <p className="text-sm">{message.content}</p>
-                        <p className={`text-xs mt-1 ${
-                          message.sender_type === 'admin' ? 'text-blue-100' : 'text-gray-500'
-                        }`}>
-                          {message.sender} • {new Date(message.created_at).toLocaleString('zh-TW')}
-                        </p>
+                        <div
+                          className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                            message.sender_type === 'admin'
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-100 text-gray-900'
+                          }`}
+                        >
+                          <p className="text-sm">{message.content}</p>
+                          <p className={`text-xs mt-1 ${
+                            message.sender_type === 'admin' ? 'text-blue-100' : 'text-gray-500'
+                          }`}>
+                            {message.sender} • {new Date(message.created_at).toLocaleString('zh-TW')}
+                          </p>
+                        </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="text-center text-gray-500 py-8">
+                      <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p>尚無訊息記錄</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
 

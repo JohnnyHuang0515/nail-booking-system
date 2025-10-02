@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CreditCard, Download, Search, Calendar, DollarSign, Clock, AlertCircle } from 'lucide-react';
+import apiService from '../services/api';
 
 interface BillingRecord {
   id: string;
@@ -17,6 +18,7 @@ interface BillingRecord {
 const Billing: React.FC = () => {
   const [billingRecords, setBillingRecords] = useState<BillingRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
@@ -28,46 +30,14 @@ const Billing: React.FC = () => {
   const fetchBillingRecords = async () => {
     try {
       setLoading(true);
-      // Mock data for now
-      const mockRecords: BillingRecord[] = [
-        {
-          id: '1',
-          merchant_id: '123e4567-e89b-12d3-a456-426614174000',
-          merchant_name: '美甲工作室A',
-          plan: '專業版',
-          amount: 2990,
-          status: 'paid',
-          billing_period: '2024-01',
-          due_date: '2024-01-31',
-          paid_at: '2024-01-28T10:30:00Z',
-          created_at: '2024-01-01T00:00:00Z'
-        },
-        {
-          id: '2',
-          merchant_id: '123e4567-e89b-12d3-a456-426614174001',
-          merchant_name: '美甲工作室B',
-          plan: '基礎版',
-          amount: 1990,
-          status: 'pending',
-          billing_period: '2024-01',
-          due_date: '2024-01-31',
-          created_at: '2024-01-01T00:00:00Z'
-        },
-        {
-          id: '3',
-          merchant_id: '123e4567-e89b-12d3-a456-426614174002',
-          merchant_name: '美甲工作室C',
-          plan: '專業版',
-          amount: 2990,
-          status: 'overdue',
-          billing_period: '2023-12',
-          due_date: '2023-12-31',
-          created_at: '2023-12-01T00:00:00Z'
-        }
-      ];
-      setBillingRecords(mockRecords);
+      setError(null);
+      const records = await apiService.getBillingRecords() as BillingRecord[];
+      // 確保 records 是陣列
+      setBillingRecords(Array.isArray(records) ? records : []);
     } catch (error) {
       console.error('取得帳務記錄失敗:', error);
+      setError('載入帳務記錄失敗，請稍後再試');
+      setBillingRecords([]);
     } finally {
       setLoading(false);
     }
@@ -254,7 +224,18 @@ const Billing: React.FC = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
             <p className="mt-2 text-gray-500">載入中...</p>
           </div>
-        ) : (
+        ) : error ? (
+          <div className="p-8 text-center">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <p className="text-red-600 mb-4">{error}</p>
+            <button
+              onClick={fetchBillingRecords}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              重新載入
+            </button>
+          </div>
+        ) : filteredRecords && filteredRecords.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -312,6 +293,12 @@ const Billing: React.FC = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        ) : (
+          <div className="p-8 text-center">
+            <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500 mb-4">暫無帳務記錄</p>
+            <p className="text-sm text-gray-400">系統尚未產生任何帳務記錄</p>
           </div>
         )}
       </div>

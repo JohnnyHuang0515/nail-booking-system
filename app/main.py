@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1.endpoints import booking, services, schedule, appointments, dashboard, users, transactions, merchants, line_webhook, admin, merchant_auth, merchant_settings, monitoring, reporting, security, support
+from app.api.v1.endpoints import booking, services, schedule, appointments, dashboard, users, transactions, merchants, line_webhook, admin, merchant_auth, merchant_settings, monitoring, reporting, security, support, billing
 from app.middleware import LineWebhookMiddleware, MultiTenantMiddleware
 
 app = FastAPI(
@@ -49,6 +49,9 @@ app.include_router(security.router, prefix="/api/v1", tags=["Security & Governan
 
 # 支援與運維 API
 app.include_router(support.router, prefix="/api/v1", tags=["Support & Operations"])
+
+# 帳務管理 API
+app.include_router(billing.router, prefix="/api/v1", tags=["Billing"])
 
 # LINE Webhook API
 app.include_router(line_webhook.router, prefix="/api/v1", tags=["LINE Webhook"])

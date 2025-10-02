@@ -35,10 +35,21 @@ const SystemSettings: React.FC = () => {
   const fetchSystemConfig = async () => {
     try {
       setLoading(true);
-      // Mock API call
-      // const response = await fetch('/api/v1/admin/system-config');
-      // const data = await response.json();
-      // setConfig(data);
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/system-config`);
+      const data = await response.json();
+      
+      // 確保所有字段都有值，避免受控/非受控組件警告
+      setConfig({
+        platform_name: data.platform_name || '美甲預約平台',
+        default_timezone: data.default_timezone || 'Asia/Taipei',
+        max_merchants: data.max_merchants || 1000,
+        webhook_timeout: data.webhook_timeout || 30,
+        rate_limit_per_minute: data.rate_limit_per_minute || 100,
+        backup_frequency: data.backup_frequency || 'daily',
+        maintenance_mode: data.maintenance_mode || false,
+        email_notifications: data.email_notifications || true,
+        sms_notifications: data.sms_notifications || false
+      });
     } catch (error) {
       console.error('取得系統設定失敗:', error);
     } finally {
@@ -49,12 +60,11 @@ const SystemSettings: React.FC = () => {
   const saveSystemConfig = async () => {
     try {
       setLoading(true);
-      // Mock API call
-      // await fetch('/api/v1/admin/system-config', {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(config)
-      // });
+      await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/system-config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config)
+      });
       
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);

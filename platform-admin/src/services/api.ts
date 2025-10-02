@@ -193,6 +193,20 @@ class ApiService {
     });
   }
 
+  // 帳務管理 API
+  async getBillingRecords() {
+    return this.request('/api/v1/billing/records');
+  }
+
+  async getBillingSummary() {
+    return this.request('/api/v1/billing/summary');
+  }
+
+  async exportBillingRecords(params?: any) {
+    const queryString = params ? `?${new URLSearchParams(params).toString()}` : '';
+    return this.request(`/api/v1/billing/export${queryString}`);
+  }
+
   // 系統設定 API
   async getSystemConfig() {
     return this.request('/api/v1/admin/system-config');

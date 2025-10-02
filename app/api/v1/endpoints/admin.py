@@ -263,6 +263,86 @@ async def get_system_stats(
         )
 
 
+class SystemConfigRequest(BaseModel):
+    """系統配置請求"""
+    platform_name: Optional[str] = "美甲預約系統"
+    default_timezone: Optional[str] = "Asia/Taipei"
+    max_merchants: Optional[int] = 100
+    webhook_timeout: Optional[int] = 30
+    rate_limit_per_minute: Optional[int] = 100
+    maintenance_mode: Optional[bool] = False
+    email_notifications: Optional[bool] = True
+    sms_notifications: Optional[bool] = False
+    backup_frequency: Optional[str] = "daily"
+
+
+class SystemConfigResponse(BaseModel):
+    """系統配置回應"""
+    platform_name: str
+    default_timezone: str
+    max_merchants: int
+    webhook_timeout: int
+    rate_limit_per_minute: int
+    maintenance_mode: bool
+    email_notifications: bool
+    sms_notifications: bool
+    backup_frequency: str
+    last_updated: Optional[datetime] = None
+
+
+@router.get("/admin/system-config", response_model=SystemConfigResponse)
+async def get_system_config():
+    """取得系統配置"""
+    try:
+        # 這裡應該從資料庫或配置文件讀取系統設定
+        # 暫時返回預設配置
+        return SystemConfigResponse(
+            platform_name="美甲預約系統",
+            default_timezone="Asia/Taipei",
+            max_merchants=100,
+            webhook_timeout=30,
+            rate_limit_per_minute=100,
+            maintenance_mode=False,
+            email_notifications=True,
+            sms_notifications=False,
+            backup_frequency="daily",
+            last_updated=datetime.now()
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"取得系統配置失敗: {str(e)}"
+        )
+
+
+@router.put("/admin/system-config", response_model=SystemConfigResponse)
+async def update_system_config(
+    config: SystemConfigRequest,
+    current_admin: dict = Depends(get_current_admin)
+):
+    """更新系統配置"""
+    try:
+        # 這裡應該將配置保存到資料庫或配置文件
+        # 暫時只返回更新後的配置
+        return SystemConfigResponse(
+            platform_name=config.platform_name,
+            default_timezone=config.default_timezone,
+            max_merchants=config.max_merchants,
+            webhook_timeout=config.webhook_timeout,
+            rate_limit_per_minute=config.rate_limit_per_minute,
+            maintenance_mode=config.maintenance_mode,
+            email_notifications=config.email_notifications,
+            sms_notifications=config.sms_notifications,
+            backup_frequency=config.backup_frequency,
+            last_updated=datetime.now()
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"更新系統配置失敗: {str(e)}"
+        )
+
+
 @router.post("/admin/merchants/{merchant_id}/toggle-status")
 async def toggle_merchant_status(
     merchant_id: UUID,

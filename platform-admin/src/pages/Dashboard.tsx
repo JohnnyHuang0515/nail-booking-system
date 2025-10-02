@@ -63,7 +63,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/v1/reports/dashboard');
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/reports/dashboard`);
       if (response.ok) {
         const data = await response.json();
         setDashboardData(data.dashboard_data);
@@ -80,10 +80,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
   // 取得商家列表
   const fetchMerchants = async () => {
     try {
-      const response = await fetch('/api/v1/merchants');
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/merchants`);
       if (response.ok) {
         const data = await response.json();
         setMerchants(data.slice(0, 5)); // 只顯示前5個
+      } else {
+        console.error('取得商家列表失敗:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('取得商家列表失敗:', error);
