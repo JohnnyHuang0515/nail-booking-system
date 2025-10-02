@@ -16,7 +16,7 @@ class Merchant(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(100), nullable=False)
     line_channel_id = Column(String(64), unique=True, nullable=False, index=True)
-    line_channel_secret = Column(String(64), nullable=False)
+    line_channel_secret = Column(Text, nullable=False)
     line_channel_access_token = Column(Text, nullable=False)
     liff_id = Column(String(64), nullable=True)  # LIFF App ID
     timezone = Column(String(50), default='Asia/Taipei')
@@ -155,26 +155,26 @@ class TimeOff(Base):
     start_datetime = Column(DateTime(timezone=True), nullable=False)
     end_datetime = Column(DateTime(timezone=True), nullable=False)
     reason = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # 關聯
     merchant = relationship("Merchant", back_populates="time_offs")
 
 
 class BillingRecord(Base):
-    """帳務記錄"""
+    """帳單記錄：每商家自管"""
     __tablename__ = "billing_records"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     merchant_id = Column(UUID(as_uuid=True), ForeignKey("merchants.id"), nullable=False)
-    plan = Column(String(100), nullable=False)  # 方案名稱
-    amount = Column(Numeric(10, 2), nullable=False)  # 金額
-    status = Column(String(20), nullable=False, default="pending")  # paid, pending, overdue
+    plan = Column(String(50), nullable=False)  # 方案名稱
+    amount = Column(Numeric(10, 2), nullable=False)
+    status = Column(String(20), nullable=False, default='pending')  # pending, paid, overdue
     billing_period_start = Column(Date, nullable=False)  # 帳單期間開始
-    billing_period_end = Column(Date, nullable=False)  # 帳單期間結束
-    due_date = Column(Date, nullable=False)  # 到期日
-    paid_at = Column(DateTime(timezone=True), nullable=True)  # 付款日期
+    billing_period_end = Column(Date, nullable=False)    # 帳單期間結束
+    due_date = Column(Date, nullable=False)              # 到期日
+    paid_at = Column(DateTime(timezone=True), nullable=True)  # 付款時間
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    
+
     # 關聯
     merchant = relationship("Merchant", back_populates="billing_records")

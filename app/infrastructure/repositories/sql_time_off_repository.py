@@ -13,25 +13,36 @@ class SqlTimeOffRepository(AbstractTimeOffRepository):
     def __init__(self, session: Session):
         self.session = session
 
-    def list_by_date(self, for_date: date) -> List[DomainTimeOff]:
+    def list_by_date(self, for_date: date, merchant_id: uuid.UUID = None) -> List[DomainTimeOff]:
         """
         Lists all time off periods that overlap with the given date.
         """
         start_of_day = datetime.combine(for_date, time.min)
         end_of_day = datetime.combine(for_date, time.max)
 
-        orm_time_offs = self.session.query(OrmTimeOff).filter(
+        query = self.session.query(OrmTimeOff).filter(
             OrmTimeOff.start_datetime < end_of_day,
             OrmTimeOff.end_datetime > start_of_day
-        ).all()
+        )
         
+        # 如果提供了商家ID，按商家過濾
+        if merchant_id:
+            query = query.filter(OrmTimeOff.merchant_id == merchant_id)
+        
+        orm_time_offs = query.all()
         return [DomainTimeOff.model_validate(orm_to) for orm_to in orm_time_offs]
 
-    def list_all(self) -> List[DomainTimeOff]:
+    def list_all(self, merchant_id: uuid.UUID = None) -> List[DomainTimeOff]:
         """
         Lists all time off periods.
         """
-        orm_time_offs = self.session.query(OrmTimeOff).order_by(OrmTimeOff.start_datetime).all()
+        query = self.session.query(OrmTimeOff).order_by(OrmTimeOff.start_datetime)
+        
+        # 如果提供了商家ID，按商家過濾
+        if merchant_id:
+            query = query.filter(OrmTimeOff.merchant_id == merchant_id)
+        
+        orm_time_offs = query.all()
         return [DomainTimeOff.model_validate(orm_to) for orm_to in orm_time_offs]
 
     def add(self, time_off: DomainTimeOff) -> None:

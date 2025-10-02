@@ -8,6 +8,8 @@ class BusinessHour(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    merchant_id: uuid.UUID
+    branch_id: uuid.UUID | None = None
     day_of_week: int  # Monday=0, Sunday=6
     start_time: time
     end_time: time
@@ -18,6 +20,9 @@ class TimeOff(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    merchant_id: uuid.UUID
+    branch_id: uuid.UUID | None = None
+    staff_id: uuid.UUID | None = None
     start_datetime: datetime
     end_datetime: datetime
     reason: str | None = None

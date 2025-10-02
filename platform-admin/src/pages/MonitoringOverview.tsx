@@ -65,7 +65,7 @@ const MonitoringOverview: React.FC = () => {
   const fetchMonitoringOverview = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/v1/monitoring/overview');
+      const response = await fetch('http://localhost:8000/api/v1/monitoring/overview');
       if (response.ok) {
         const data = await response.json();
         // 安全地合併 API 資料與預設值
@@ -99,7 +99,7 @@ const MonitoringOverview: React.FC = () => {
   // 取得告警列表
   const fetchAlerts = async () => {
     try {
-      const response = await fetch('/api/v1/monitoring/alerts');
+      const response = await fetch('http://localhost:8000/api/v1/monitoring/alerts');
       if (response.ok) {
         const data = await response.json();
         setAlerts(data.alerts);

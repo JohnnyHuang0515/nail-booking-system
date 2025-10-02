@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Clock, ChevronLeft, CheckCircle, DollarSign } from 'lucide-react';
+import { Clock, ChevronLeft, CheckCircle, Loader2 } from 'lucide-react';
+import customerApiService from '../../services/api';
 
 interface ServiceSelectionPageProps {
   selectedDate: string;
@@ -11,63 +12,48 @@ interface ServiceSelectionPageProps {
   onBack: () => void;
 }
 
+interface Service {
+  id: string;
+  merchant_id: string;
+  name: string;
+  price: number;
+  duration_minutes: number;
+  is_active: boolean;
+  description?: string;
+  category?: string;
+  popular?: boolean;
+}
+
 export default function ServiceSelectionPage({ 
   selectedDate, 
   selectedTime, 
   onNext, 
   onBack 
 }: ServiceSelectionPageProps) {
-  const [selectedService, setSelectedService] = useState<any>(null);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const services = [
-    {
-      id: 1,
-      name: '基礎保養',
-      description: '基礎指甲修剪、去角質、保濕護理',
-      duration: 60,
-      price: 800,
-      category: '基礎護理',
-      popular: false
-    },
-    {
-      id: 2,
-      name: '法式指甲',
-      description: '經典法式風格，優雅簡約',
-      duration: 90,
-      price: 1200,
-      category: '彩繪指甲',
-      popular: true
-    },
-    {
-      id: 3,
-      name: '光療指甲',
-      description: '持久光療，多種顏色選擇',
-      duration: 120,
-      price: 1500,
-      category: '光療系列',
-      popular: true
-    },
-    {
-      id: 4,
-      name: '手部護理',
-      description: '深層手部護理，包含按摩和保濕',
-      duration: 75,
-      price: 1000,
-      category: '護理療程',
-      popular: false
-    },
-    {
-      id: 5,
-      name: '指甲彩繪',
-      description: '個性化指甲彩繪設計',
-      duration: 150,
-      price: 2000,
-      category: '彩繪指甲',
-      popular: false
-    },
-  ];
+  useEffect(() => {
+    loadServices();
+  }, []);
 
-  const handleServiceSelect = (service: any) => {
+  const loadServices = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const servicesData = await customerApiService.getServices();
+      setServices(servicesData);
+    } catch (err) {
+      console.error('載入服務資料失敗:', err);
+      setError('載入服務資料失敗，請稍後再試');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleServiceSelect = (service: Service) => {
     setSelectedService(service);
   };
 
@@ -85,7 +71,45 @@ export default function ServiceSelectionPage({
     });
   };
 
-  const categories = Array.from(new Set(services.map(s => s.category)));
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background p-4">
+        <div className="max-w-md mx-auto space-y-6">
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="ml-2">載入中...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background p-4">
+        <div className="max-w-md mx-auto space-y-6">
+          <div className="text-center">
+            <h1 className="text-2xl font-semibold text-foreground mb-2">選擇服務項目</h1>
+            <p className="text-muted-foreground">請選擇您想要的美甲服務</p>
+          </div>
+          <Card className="bg-red-50 border-red-200">
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <div className="text-red-500 mb-4">{error}</div>
+                <Button onClick={loadServices} variant="outline">
+                  重新載入
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+          <Button variant="outline" onClick={onBack} className="w-full">
+            <ChevronLeft className="h-4 w-4 mr-2" />
+            返回時間選擇
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-4">
@@ -108,65 +132,61 @@ export default function ServiceSelectionPage({
           </CardContent>
         </Card>
 
-        {/* Services by category */}
-        {categories.map(category => {
-          const categoryServices = services.filter(s => s.category === category);
-          
-          return (
-            <Card key={category}>
-              <CardHeader>
-                <CardTitle className="text-lg">{category}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {categoryServices.map((service) => {
-                    const isSelected = selectedService?.id === service.id;
+        {/* Services list */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">服務項目</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {services.map((service) => {
+                const isSelected = selectedService?.id === service.id;
+                
+                return (
+                  <button
+                    key={service.id}
+                    onClick={() => handleServiceSelect(service)}
+                    className={`
+                      w-full p-4 rounded-lg border text-left transition-colors
+                      ${isSelected 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-border hover:bg-muted'
+                      }
+                    `}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center space-x-2">
+                        <h3 className="font-medium">{service.name}</h3>
+                        {service.popular && (
+                          <Badge className="bg-orange-100 text-orange-700 text-xs">
+                            熱門
+                          </Badge>
+                        )}
+                        {isSelected && (
+                          <CheckCircle className="h-4 w-4 text-primary" />
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <div className="font-medium text-primary">NT${service.price}</div>
+                      </div>
+                    </div>
                     
-                    return (
-                      <button
-                        key={service.id}
-                        onClick={() => handleServiceSelect(service)}
-                        className={`
-                          w-full p-4 rounded-lg border text-left transition-colors
-                          ${isSelected 
-                            ? 'border-primary bg-primary/5' 
-                            : 'border-border hover:bg-muted'
-                          }
-                        `}
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex items-center space-x-2">
-                            <h3 className="font-medium">{service.name}</h3>
-                            {service.popular && (
-                              <Badge className="bg-orange-100 text-orange-700 text-xs">
-                                熱門
-                              </Badge>
-                            )}
-                            {isSelected && (
-                              <CheckCircle className="h-4 w-4 text-primary" />
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <div className="font-medium text-primary">NT${service.price}</div>
-                          </div>
-                        </div>
-                        
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {service.description}
-                        </p>
-                        
-                        <div className="flex items-center text-xs text-muted-foreground">
-                          <Clock className="h-3 w-3 mr-1" />
-                          約 {service.duration} 分鐘
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+                    {service.description && (
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {service.description}
+                      </p>
+                    )}
+                    
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3 mr-1" />
+                      約 {service.duration_minutes} 分鐘
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Selected service summary */}
         {selectedService && (
@@ -180,7 +200,7 @@ export default function ServiceSelectionPage({
                 <div className="text-sm">
                   <div className="font-medium">{selectedService.name}</div>
                   <div className="text-muted-foreground flex items-center justify-between mt-1">
-                    <span>服務時間：{selectedService.duration} 分鐘</span>
+                    <span>服務時間：{selectedService.duration_minutes} 分鐘</span>
                     <span className="font-medium text-primary">NT${selectedService.price}</span>
                   </div>
                 </div>

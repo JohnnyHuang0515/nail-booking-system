@@ -49,6 +49,7 @@ def get_transaction_service(db: Session = Depends(get_db)) -> TransactionService
 
 @router.get("/transactions", response_model=List[TransactionResponse])
 async def list_transactions(
+    merchant_id: str,
     user_id: Optional[uuid.UUID] = Query(None, description="Filter by user ID"),
     start_date: Optional[str] = Query(None, description="Start date for filtering (YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="End date for filtering (YYYY-MM-DD)"),
@@ -56,10 +57,14 @@ async def list_transactions(
 ):
     """Get all transactions with optional filtering."""
     try:
+        import uuid
+        merchant_uuid = uuid.UUID(merchant_id)
+        
         transactions = transaction_service.get_transactions(
             user_id=user_id,
             start_date=start_date,
-            end_date=end_date
+            end_date=end_date,
+            merchant_id=merchant_uuid
         )
         
         result = []

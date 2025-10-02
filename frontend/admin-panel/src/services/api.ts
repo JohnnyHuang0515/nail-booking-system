@@ -10,7 +10,7 @@ class ApiService {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
-  ): Promise<T> {
+  ): Promise<T | null> {
     const url = `${this.baseURL}${endpoint}`;
     
     // 取得認證 token
@@ -38,7 +38,19 @@ class ApiService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      return await response.json();
+      // 處理空響應（如 204 No Content）
+      if (response.status === 204 || response.headers.get('content-length') === '0') {
+        return null as T | null;
+      }
+      
+      // 檢查響應內容類型
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json() as T;
+      } else {
+        // 對於非 JSON 響應，返回 null 而不是 string
+        return null as T | null;
+      }
     } catch (error) {
       console.error('API request failed:', error);
       throw error;
@@ -58,8 +70,15 @@ class ApiService {
   }
 
   // 預約管理 API
-  async getAppointments(merchantId: string) {
-    return this.request(`/api/v1/appointments?merchant_id=${merchantId}`);
+  async getAppointments(merchantId: string, startDate?: string, endDate?: string) {
+    const today = new Date().toISOString().split('T')[0];
+    const defaultEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const params = new URLSearchParams({
+      merchant_id: merchantId,
+      start_date: startDate || today,
+      end_date: endDate || defaultEndDate
+    });
+    return this.request(`/api/v1/appointments?${params}`);
   }
 
   async createAppointment(appointmentData: any) {
@@ -148,7 +167,7 @@ class ApiService {
 
   // 儀表板 API
   async getDashboardData(merchantId: string) {
-    return this.request(`/api/v1/dashboard?merchant_id=${merchantId}`);
+    return this.request(`/api/v1/dashboard/summary`);
   }
 
   // 交易記錄 API

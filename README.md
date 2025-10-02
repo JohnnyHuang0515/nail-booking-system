@@ -5,10 +5,30 @@
 ## 系統特色
 
 - 🏢 **多租戶架構** - 支援多商家獨立運營
-- 📱 **LINE 整合** - 支援 LINE LIFF 和 Rich Menu
+- 📱 **LINE 整合** - 支援 LINE LIFF 和 Rich Menu，包含憑證驗證
 - 🔐 **安全治理** - RBAC 權限控制、審計軌跡
 - 📊 **智能監控** - 系統健康檢查、業務報表
 - 🚀 **一鍵部署** - 完整的啟動腳本和部署方案
+- 💰 **帳務管理** - 完整的商家帳務和計費系統
+
+## 專案結構
+
+```
+美甲預約系統/
+├── app/                          # 後端 API 服務
+│   ├── api/v1/endpoints/         # API 端點
+│   ├── infrastructure/           # 資料庫和基礎設施
+│   ├── services/                 # 業務邏輯服務
+│   └── main.py                   # FastAPI 應用入口
+├── frontend/
+│   ├── admin-panel/              # 商家後台 (端口 3000)
+│   └── customer-booking/         # 客戶預約 (端口 3001)
+├── platform-admin/               # 平台管理員 (端口 3002)
+├── scripts/                      # 啟動和部署腳本
+├── docs/                         # 系統文檔
+├── archive/                      # 歷史檔案備份
+└── requirements.txt              # Python 依賴
+```
 
 ## 系統架構
 

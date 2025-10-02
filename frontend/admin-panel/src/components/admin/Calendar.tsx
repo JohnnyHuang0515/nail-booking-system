@@ -97,8 +97,8 @@ export default function Calendar() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-7 gap-1 mb-4">
-            {weekDays.map(day => (
-              <div key={day} className="p-2 text-center font-medium text-muted-foreground bg-muted rounded">
+            {weekDays.map((day, index) => (
+              <div key={`weekday-${index}`} className="p-2 text-center font-medium text-muted-foreground bg-muted rounded">
                 {day}
               </div>
             ))}
@@ -107,7 +107,7 @@ export default function Calendar() {
           <div className="grid grid-cols-7 gap-1">
             {getDaysInMonth(currentDate).map((day, index) => {
               if (!day) {
-                return <div key={index} className="p-2 h-24"></div>;
+                return <div key={`empty-${index}`} className="p-2 h-24"></div>;
               }
               
               const dateKey = formatDateKey(day);
@@ -120,7 +120,7 @@ export default function Calendar() {
               
               return (
                 <div 
-                  key={day} 
+                  key={`day-${day}-${currentDate.getMonth()}-${currentDate.getFullYear()}`} 
                   className={`p-2 h-24 border rounded-lg hover:bg-muted/50 cursor-pointer ${
                     isToday ? 'bg-primary/10 border-primary' : 'border-border'
                   }`}
@@ -131,7 +131,7 @@ export default function Calendar() {
                   <div className="space-y-1">
                     {dayAppointments.slice(0, 2).map((appointment: { time: string; service: string; customer: string }, idx: number) => (
                       <div 
-                        key={idx} 
+                        key={`appointment-${day}-${idx}-${appointment.time}-${appointment.customer}`} 
                         className="text-xs p-1 bg-primary/20 text-primary rounded truncate"
                         title={`${appointment.time} ${appointment.customer} - ${appointment.service}`}
                       >

@@ -1,65 +1,55 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Badge } from '../ui/badge';
-import { Plus, Search, Filter, Edit, Trash2, Phone, Mail } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
+import { Plus, Search, Filter, Edit, Trash2, Phone, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '../ui/dialog';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Textarea } from '../ui/textarea';
+import apiService from '../../services/api';
+
+interface Appointment {
+  id: string;
+  date: string;
+  time: string;
+  customer: string;
+  phone: string;
+  service: string;
+  duration: number;
+  price: number;
+  status: string;
+}
 
 export default function Appointments() {
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
-  const appointments = [
-    {
-      id: 1,
-      date: '2024-01-15',
-      time: '09:00',
-      customer: '張小姐',
-      phone: '0912-345-678',
-      service: '基礎保養',
-      duration: 60,
-      price: 800,
-      status: 'confirmed'
-    },
-    {
-      id: 2,
-      date: '2024-01-15',
-      time: '10:30',
-      customer: '李小姐',
-      phone: '0923-456-789',
-      service: '法式指甲',
-      duration: 90,
-      price: 1200,
-      status: 'in-progress'
-    },
-    {
-      id: 3,
-      date: '2024-01-16',
-      time: '14:00',
-      customer: '王小姐',
-      phone: '0934-567-890',
-      service: '光療指甲',
-      duration: 120,
-      price: 1500,
-      status: 'pending'
-    },
-    {
-      id: 4,
-      date: '2024-01-16',
-      time: '15:30',
-      customer: '陳小姐',
-      phone: '0945-678-901',
-      service: '手部護理',
-      duration: 75,
-      price: 1000,
-      status: 'confirmed'
-    },
-  ];
+  useEffect(() => {
+    loadAppointments();
+  }, []);
+
+  const loadAppointments = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // 使用正確的商家ID
+      const merchantId = '5a89c20e-befd-4bb3-a43b-e185ab0e4841';
+
+      const appointmentsData = await apiService.getAppointments(merchantId) as Appointment[];
+      setAppointments(appointmentsData);
+    } catch (err) {
+      console.error('載入預約資料失敗:', err);
+      setError('載入預約資料失敗，請稍後再試');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -85,6 +75,26 @@ export default function Appointments() {
     return matchesSearch && matchesStatus;
   });
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">載入中...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <div className="text-red-500 mb-4">{error}</div>
+        <Button onClick={loadAppointments} variant="outline">
+          重新載入
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -99,6 +109,9 @@ export default function Appointments() {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>新增預約</DialogTitle>
+              <DialogDescription>
+                請填寫預約的詳細資訊，包括日期、時間、顧客和服務項目。
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">

@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Download, Filter, Calendar } from 'lucide-react';
+import apiService from '../services/api';
 
 interface AuditLog {
   id: string;
   timestamp: string;
-  user: string;
+  user_id: string;
+  username: string;
   action: string;
-  resource: string;
-  details: string;
-  ip_address: string;
-  user_agent: string;
+  resource_type: string;
+  resource_id?: string;
+  details: any; // 可能是字符串或物件
+  ip_address?: string;
+  user_agent?: string;
+  success: boolean;
+  error_message?: string;
 }
 
 const AuditTrail: React.FC = () => {
@@ -25,61 +30,46 @@ const AuditTrail: React.FC = () => {
   const fetchAuditLogs = async () => {
     try {
       setLoading(true);
-      // Mock data for now
-      const mockLogs: AuditLog[] = [
-        {
-          id: '1',
-          timestamp: '2024-01-15T10:30:00Z',
-          user: 'admin@platform.com',
-          action: 'CREATE_MERCHANT',
-          resource: 'merchant:123e4567-e89b-12d3-a456-426614174000',
-          details: '創建新商家: 美甲工作室A',
-          ip_address: '192.168.1.100',
-          user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        },
-        {
-          id: '2',
-          timestamp: '2024-01-15T09:15:00Z',
-          user: 'ops@platform.com',
-          action: 'UPDATE_CREDENTIALS',
-          resource: 'merchant:123e4567-e89b-12d3-a456-426614174001',
-          details: '更新LINE憑證',
-          ip_address: '192.168.1.101',
-          user_agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
-        }
-      ];
-      setLogs(mockLogs);
+      const logsData = await apiService.getAuditLogs() as AuditLog[];
+      setLogs(logsData);
     } catch (error) {
-      console.error('取得審計日誌失敗:', error);
+      console.error('載入審計日誌失敗:', error);
+      setLogs([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const exportLogs = () => {
-    const csvContent = [
-      ['時間', '用戶', '動作', '資源', '詳情', 'IP地址'].join(','),
-      ...logs.map(log => [
-        log.timestamp,
-        log.user,
-        log.action,
-        log.resource,
-        log.details,
-        log.ip_address
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `audit_logs_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
+  const exportLogs = async () => {
+    try {
+      const params = {
+        start_date: dateRange.start,
+        end_date: dateRange.end,
+        format: 'csv'
+      };
+      const csvData = await apiService.exportAuditLogs(params) as string;
+      
+      // 下載CSV文件
+      const blob = new Blob([csvData], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `audit_logs_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('匯出審計日誌失敗:', error);
+    }
   };
 
   const filteredLogs = logs.filter(log => 
-    log.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.details.toLowerCase().includes(searchTerm.toLowerCase())
+    (log.username && log.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (log.action && log.action.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (log.resource_type && log.resource_type.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (log.details && typeof log.details === 'string' && log.details.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (log.details && typeof log.details === 'object' && JSON.stringify(log.details).toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -172,7 +162,7 @@ const AuditTrail: React.FC = () => {
                       {new Date(log.timestamp).toLocaleString('zh-TW')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {log.user}
+                      {log.username}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
@@ -180,13 +170,13 @@ const AuditTrail: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {log.resource}
+                      {log.resource_type}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900">
-                      {log.details}
+                      {typeof log.details === 'string' ? log.details : JSON.stringify(log.details)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {log.ip_address}
+                      {log.ip_address || '-'}
                     </td>
                   </tr>
                 ))}

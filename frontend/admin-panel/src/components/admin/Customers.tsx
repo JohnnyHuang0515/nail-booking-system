@@ -1,95 +1,96 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Badge } from '../ui/badge';
-import { Plus, Search, Phone, Mail, Calendar, Edit, Trash2, User } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
+import { Plus, Search, Phone, Mail, Calendar, Edit, Trash2, User, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '../ui/dialog';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
+import apiService from '../../services/api';
+
+interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  totalAppointments: number;
+  lastVisit: string;
+  totalSpent: number;
+  notes: string;
+  status: string;
+  birthDate: string;
+}
 
 export default function Customers() {
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
-  const customers = [
-    {
-      id: 1,
-      name: '張小姐',
-      phone: '0912-345-678',
-      email: 'zhang@example.com',
-      totalAppointments: 12,
-      lastVisit: '2024-01-10',
-      totalSpent: 15600,
-      notes: '偏好法式指甲，對顏色很挑剔',
-      status: 'active',
-      birthDate: '1990-05-15'
-    },
-    {
-      id: 2,
-      name: '李小姐',
-      phone: '0923-456-789',
-      email: 'li@example.com',
-      totalAppointments: 8,
-      lastVisit: '2024-01-08',
-      totalSpent: 9600,
-      notes: '皮膚敏感，需要使用低敏感產品',
-      status: 'active',
-      birthDate: '1985-03-22'
-    },
-    {
-      id: 3,
-      name: '王小姐',
-      phone: '0934-567-890',
-      email: 'wang@example.com',
-      totalAppointments: 15,
-      lastVisit: '2024-01-12',
-      totalSpent: 22500,
-      notes: 'VIP顧客，喜歡嘗試新款式',
-      status: 'vip',
-      birthDate: '1992-11-08'
-    },
-    {
-      id: 4,
-      name: '陳小姐',
-      phone: '0945-678-901',
-      email: 'chen@example.com',
-      totalAppointments: 3,
-      lastVisit: '2023-12-20',
-      totalSpent: 3600,
-      notes: '新顧客，第一次體驗很滿意',
-      status: 'new',
-      birthDate: '1988-07-03'
-    },
-    {
-      id: 5,
-      name: '林小姐',
-      phone: '0956-789-012',
-      email: 'lin@example.com',
-      totalAppointments: 25,
-      lastVisit: '2024-01-14',
-      totalSpent: 37500,
-      notes: '長期顧客，每月固定保養',
-      status: 'vip',
-      birthDate: '1987-09-18'
-    },
-  ];
+  useEffect(() => {
+    loadCustomers();
+  }, []);
+
+  const loadCustomers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // 使用正確的商家ID
+      const merchantId = '5a89c20e-befd-4bb3-a43b-e185ab0e4841';
+
+      const customersData = await apiService.getCustomers(merchantId) as Customer[];
+      setCustomers(customersData);
+    } catch (err) {
+      console.error('載入客戶資料失敗:', err);
+      setError('載入客戶資料失敗，請稍後再試');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       'active': { label: '活躍', color: 'bg-green-100 text-green-700' },
       'vip': { label: 'VIP', color: 'bg-purple-100 text-purple-700' },
-      'new': { label: '新顧客', color: 'bg-blue-100 text-blue-700' },
-      'inactive': { label: '未活躍', color: 'bg-gray-100 text-gray-700' },
+      'new': { label: '新客戶', color: 'bg-blue-100 text-blue-700' },
+      'inactive': { label: '非活躍', color: 'bg-gray-100 text-gray-700' },
     };
-
-    const config = statusConfig[status as keyof typeof statusConfig];
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.active;
     return (
       <span className={`px-2 py-1 rounded-full text-xs ${config.color}`}>
         {config.label}
       </span>
     );
   };
+
+  const filteredCustomers = customers.filter(customer =>
+    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.phone.includes(searchTerm) ||
+    customer.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">載入中...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <div className="text-red-500 mb-4">{error}</div>
+        <Button onClick={loadCustomers} variant="outline">
+          重新載入
+        </Button>
+      </div>
+    );
+  }
 
   const CustomerForm = ({ customer, onClose }: { customer?: any, onClose: () => void }) => (
     <div className="space-y-4">
@@ -145,12 +146,6 @@ export default function Customers() {
     </div>
   );
 
-  const filteredCustomers = customers.filter(customer =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone.includes(searchTerm) ||
-    customer.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -165,6 +160,9 @@ export default function Customers() {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>新增顧客</DialogTitle>
+              <DialogDescription>
+                請填寫顧客的基本資訊，包括姓名、電話和電子郵件。
+              </DialogDescription>
             </DialogHeader>
             <CustomerForm onClose={() => setIsAddDialogOpen(false)} />
           </DialogContent>

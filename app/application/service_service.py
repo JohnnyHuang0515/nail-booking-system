@@ -8,11 +8,13 @@ class ServiceService:
     def __init__(self, service_repo: AbstractServiceRepository):
         self.service_repo = service_repo
 
-    def get_all_services(self) -> List[Service]:
+    def get_all_services(self, merchant_id: uuid.UUID = None) -> List[Service]:
+        if merchant_id:
+            return self.service_repo.list_by_merchant(merchant_id)
         return self.service_repo.list()
 
-    def create_service(self, name: str, price: float, duration_minutes: int, is_active: bool = True) -> Service:
-        service = Service(name=name, price=price, duration_minutes=duration_minutes, is_active=is_active)
+    def create_service(self, name: str, price: float, duration_minutes: int, merchant_id: uuid.UUID, is_active: bool = True) -> Service:
+        service = Service(name=name, price=price, duration_minutes=duration_minutes, merchant_id=merchant_id, is_active=is_active)
         self.service_repo.add(service)
         return service
 

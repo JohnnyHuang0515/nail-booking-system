@@ -1,26 +1,130 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Calendar, Clock, Users, Sparkles, TrendingUp, Plus } from 'lucide-react';
+import { Calendar, Clock, Users, Sparkles, TrendingUp, Plus, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
+import apiService from '../../services/api';
 
 interface DashboardProps {
   onPageChange: (page: string) => void;
 }
 
+interface DashboardStats {
+  todayAppointments: number;
+  monthlyRevenue: number;
+  activeCustomers: number;
+  totalServices: number;
+}
+
+interface Appointment {
+  id: string;
+  time: string;
+  service: string;
+  customer: string;
+  status: string;
+}
+
 export default function Dashboard({ onPageChange }: DashboardProps) {
-  const stats = [
-    { title: '今日預約', value: '12', icon: Calendar, color: 'text-primary' },
-    { title: '本月收入', value: '¥24,500', icon: TrendingUp, color: 'text-green-600' },
-    { title: '活躍顧客', value: '156', icon: Users, color: 'text-blue-500' },
-    { title: '服務項目', value: '8', icon: Sparkles, color: 'text-purple-500' },
+  const [stats, setStats] = useState<DashboardStats>({
+    todayAppointments: 0,
+    monthlyRevenue: 0,
+    activeCustomers: 0,
+    totalServices: 0
+  });
+  const [todayAppointments, setTodayAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // 強制使用正確的商家ID
+      const merchantId = '5a89c20e-befd-4bb3-a43b-e185ab0e4841';
+      
+      // 保存到localStorage以便後續使用
+      localStorage.setItem('merchant_data', JSON.stringify({ id: merchantId, name: '美甲工作室測試' }));
+
+      // 並行載入儀表板資料
+      const [dashboardData, appointmentsData, servicesData] = await Promise.all([
+        apiService.getDashboardData(merchantId),
+        apiService.getAppointments(merchantId),
+        apiService.getServices(merchantId)
+      ]) as [any, any[], any[]];
+
+      // 處理統計資料
+      const today = new Date().toISOString().split('T')[0];
+      const todayAppts = appointmentsData.filter((apt: any) => 
+        apt.appointment_date === today
+      );
+
+      setStats({
+        todayAppointments: todayAppts.length,
+        monthlyRevenue: dashboardData.monthlyRevenue || 0,
+        activeCustomers: dashboardData.activeCustomers || 0,
+        totalServices: servicesData.length || 0
+      });
+
+      // 處理今日預約
+      const formattedAppointments = todayAppts.map((apt: any) => ({
+        id: apt.id,
+        time: apt.appointment_time,
+        service: apt.service_name || '未知服務',
+        customer: apt.customer_name || '未知客戶',
+        status: getStatusText(apt.status)
+      }));
+
+      setTodayAppointments(formattedAppointments);
+
+    } catch (err) {
+      console.error('載入儀表板資料失敗:', err);
+      setError('載入資料失敗，請稍後再試');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    const statusMap: { [key: string]: string } = {
+      'confirmed': '已確認',
+      'in-progress': '進行中',
+      'pending': '待確認',
+      'completed': '已完成',
+      'cancelled': '已取消'
+    };
+    return statusMap[status] || status;
+  };
+
+  const statsConfig = [
+    { title: '今日預約', value: stats.todayAppointments.toString(), icon: Calendar, color: 'text-primary' },
+    { title: '本月收入', value: `¥${stats.monthlyRevenue.toLocaleString()}`, icon: TrendingUp, color: 'text-green-600' },
+    { title: '活躍顧客', value: stats.activeCustomers.toString(), icon: Users, color: 'text-blue-500' },
+    { title: '服務項目', value: stats.totalServices.toString(), icon: Sparkles, color: 'text-purple-500' },
   ];
 
-  const todayAppointments = [
-    { time: '09:00', service: '基礎保養', customer: '張小姐', status: '已確認' },
-    { time: '10:30', service: '法式指甲', customer: '李小姐', status: '進行中' },
-    { time: '14:00', service: '光療指甲', customer: '王小姐', status: '待確認' },
-    { time: '15:30', service: '手部護理', customer: '陳小姐', status: '已確認' },
-  ];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">載入中...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <div className="text-red-500 mb-4">{error}</div>
+        <Button onClick={loadDashboardData} variant="outline">
+          重新載入
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -34,7 +138,7 @@ export default function Dashboard({ onPageChange }: DashboardProps) {
 
       {/* 統計卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        {stats.map((stat) => {
+        {statsConfig.map((stat) => {
           const Icon = stat.icon;
           return (
             <Card key={stat.title}>
@@ -63,24 +167,30 @@ export default function Dashboard({ onPageChange }: DashboardProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {todayAppointments.map((appointment, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                  <div>
-                    <div className="font-medium">{appointment.time}</div>
-                    <div className="text-sm text-muted-foreground">{appointment.service}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-medium">{appointment.customer}</div>
-                    <div className={`text-xs px-2 py-1 rounded-full inline-block ${
-                      appointment.status === '已確認' ? 'bg-green-100 text-green-700' :
-                      appointment.status === '進行中' ? 'bg-blue-100 text-blue-700' :
-                      'bg-yellow-100 text-yellow-700'
-                    }`}>
-                      {appointment.status}
+              {todayAppointments.length > 0 ? (
+                todayAppointments.map((appointment) => (
+                  <div key={appointment.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                    <div>
+                      <div className="font-medium">{appointment.time}</div>
+                      <div className="text-sm text-muted-foreground">{appointment.service}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-medium">{appointment.customer}</div>
+                      <div className={`text-xs px-2 py-1 rounded-full inline-block ${
+                        appointment.status === '已確認' ? 'bg-green-100 text-green-700' :
+                        appointment.status === '進行中' ? 'bg-blue-100 text-blue-700' :
+                        'bg-yellow-100 text-yellow-700'
+                      }`}>
+                        {appointment.status}
+                      </div>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div className="text-center text-muted-foreground py-8">
+                  今日暫無預約
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>

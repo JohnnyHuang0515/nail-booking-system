@@ -39,6 +39,10 @@ module.exports = {
           DEFAULT: "var(--card)",
           foreground: "var(--card-foreground)",
         },
+        disabled: {
+          DEFAULT: "var(--disabled)",
+          foreground: "var(--disabled-foreground)",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

@@ -19,10 +19,15 @@ class BusinessHourIn(BaseModel):
 
 
 @router.get("/schedule/business_hours")
-def get_business_hours(service: ScheduleService = Depends(get_schedule_service)):
+def get_business_hours(
+    merchant_id: str,
+    service: ScheduleService = Depends(get_schedule_service)
+):
     """Get the weekly business hours."""
     try:
-        return service.get_all_business_hours()
+        import uuid
+        merchant_uuid = uuid.UUID(merchant_id)
+        return service.get_all_business_hours(merchant_uuid)
     except Exception as e:
         print(f"Business hours error: {e}")
         return []
@@ -31,13 +36,23 @@ def get_business_hours(service: ScheduleService = Depends(get_schedule_service))
 @router.post("/schedule/business_hours", response_model=list[BusinessHour])
 def set_business_hours(
     hours: list[BusinessHourIn],
+    merchant_id: str,
     service: ScheduleService = Depends(get_schedule_service)
 ):
     """
     Set the weekly business hours.
     This will replace all existing business hours.
     """
-    business_hours = [BusinessHour.model_validate(h.model_dump()) for h in hours]
+    merchant_uuid = uuid.UUID(merchant_id)
+    business_hours = []
+    for h in hours:
+        business_hour = BusinessHour(
+            merchant_id=merchant_uuid,
+            day_of_week=h.day_of_week,
+            start_time=h.start_time,
+            end_time=h.end_time
+        )
+        business_hours.append(business_hour)
     return service.set_business_hours(business_hours)
 
 
@@ -78,7 +93,9 @@ def add_time_off(
     service: ScheduleService = Depends(get_schedule_service)
 ):
     """Add a new time off period."""
-    return service.add_time_off(**time_off_data.model_dump())
+    # 使用正確的測試商家 ID
+    merchant_id = uuid.UUID("c9a8982e-5f17-459b-a83e-690057e4da71")
+    return service.add_time_off(merchant_id=merchant_id, **time_off_data.model_dump())
 
 
 @router.delete("/schedule/time_off/{time_off_id}", status_code=status.HTTP_204_NO_CONTENT)

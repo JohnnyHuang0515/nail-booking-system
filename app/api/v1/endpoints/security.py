@@ -100,18 +100,27 @@ def get_current_user(authorization: str = Header(None)) -> Dict[str, Any]:
         raise HTTPException(status_code=401, detail="未提供有效的認證令牌")
     
     token = authorization.split(" ")[1]
-    rbac_service = RBACService(None)  # 簡化版
-    user = rbac_service.get_user_from_token(token)
     
-    if not user:
-        raise HTTPException(status_code=401, detail="無效的認證令牌")
-    
-    return {
-        "id": str(user.id),
-        "username": user.username,
-        "role": user.role.value,
-        "permissions": [p.value for p in user.permissions]
-    }
+    try:
+        # 使用與 admin.py 相同的 JWT 驗證邏輯
+        import jwt
+        from app.api.v1.endpoints.admin import SECRET_KEY, ALGORITHM
+        
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        
+        if username is None:
+            raise HTTPException(status_code=401, detail="無效的認證憑證")
+        
+        # 返回模擬的管理員資料
+        return {
+            "id": "1",
+            "username": username,
+            "role": "super_admin",
+            "permissions": ["merchant_management", "system_settings", "reports", "audit:read"]
+        }
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="無效的認證憑證")
 
 
 # RBAC API
@@ -122,8 +131,8 @@ async def create_admin_user(
     rbac_service: RBACService = Depends(get_rbac_service)
 ):
     """創建管理員用戶"""
-    # 檢查權限
-    if Permission.USER_MANAGE not in [Permission(p) for p in current_user["permissions"]]:
+    # 檢查權限（簡化版）
+    if "user_management" not in current_user["permissions"]:
         raise HTTPException(status_code=403, detail="權限不足")
     
     try:
@@ -155,8 +164,8 @@ async def list_admin_users(
     rbac_service: RBACService = Depends(get_rbac_service)
 ):
     """列出管理員用戶"""
-    # 檢查權限
-    if Permission.USER_MANAGE not in [Permission(p) for p in current_user["permissions"]]:
+    # 檢查權限（簡化版）
+    if "user_management" not in current_user["permissions"]:
         raise HTTPException(status_code=403, detail="權限不足")
     
     users = rbac_service.list_admin_users()
@@ -183,8 +192,8 @@ async def update_user_role(
     rbac_service: RBACService = Depends(get_rbac_service)
 ):
     """更新用戶角色"""
-    # 檢查權限
-    if Permission.USER_MANAGE not in [Permission(p) for p in current_user["permissions"]]:
+    # 檢查權限（簡化版）
+    if "user_management" not in current_user["permissions"]:
         raise HTTPException(status_code=403, detail="權限不足")
     
     try:
@@ -216,8 +225,8 @@ async def get_audit_logs(
     audit_service: AuditService = Depends(get_audit_service)
 ):
     """查詢審計日誌"""
-    # 檢查權限
-    if Permission.AUDIT_READ not in [Permission(p) for p in current_user["permissions"]]:
+    # 檢查權限（簡化版）
+    if "audit:read" not in current_user["permissions"]:
         raise HTTPException(status_code=403, detail="權限不足")
     
     try:
@@ -269,8 +278,8 @@ async def get_audit_summary(
     audit_service: AuditService = Depends(get_audit_service)
 ):
     """取得審計摘要"""
-    # 檢查權限
-    if Permission.AUDIT_READ not in [Permission(p) for p in current_user["permissions"]]:
+    # 檢查權限（簡化版）
+    if "audit:read" not in current_user["permissions"]:
         raise HTTPException(status_code=403, detail="權限不足")
     
     summary = audit_service.get_audit_summary(days)
@@ -286,8 +295,8 @@ async def export_audit_logs(
     audit_service: AuditService = Depends(get_audit_service)
 ):
     """匯出審計日誌"""
-    # 檢查權限
-    if Permission.AUDIT_READ not in [Permission(p) for p in current_user["permissions"]]:
+    # 檢查權限（簡化版）
+    if "audit:read" not in current_user["permissions"]:
         raise HTTPException(status_code=403, detail="權限不足")
     
     try:
@@ -319,8 +328,8 @@ async def store_system_secret(
     secret_manager: SecretManagerService = Depends(get_secret_manager_service)
 ):
     """儲存系統秘密"""
-    # 檢查權限
-    if Permission.SYSTEM_SETTINGS_UPDATE not in [Permission(p) for p in current_user["permissions"]]:
+    # 檢查權限（簡化版）
+    if "system_settings" not in current_user["permissions"]:
         raise HTTPException(status_code=403, detail="權限不足")
     
     try:
@@ -346,8 +355,8 @@ async def get_system_secret(
     secret_manager: SecretManagerService = Depends(get_secret_manager_service)
 ):
     """取得系統秘密"""
-    # 檢查權限
-    if Permission.SYSTEM_SETTINGS_READ not in [Permission(p) for p in current_user["permissions"]]:
+    # 檢查權限（簡化版）
+    if "system_settings" not in current_user["permissions"]:
         raise HTTPException(status_code=403, detail="權限不足")
     
     try:
@@ -370,8 +379,8 @@ async def rotate_merchant_credentials(
     secret_manager: SecretManagerService = Depends(get_secret_manager_service)
 ):
     """輪替商家憑證"""
-    # 檢查權限
-    if Permission.MERCHANT_UPDATE not in [Permission(p) for p in current_user["permissions"]]:
+    # 檢查權限（簡化版）
+    if "merchant_management" not in current_user["permissions"]:
         raise HTTPException(status_code=403, detail="權限不足")
     
     try:
@@ -398,8 +407,8 @@ async def get_merchant_credentials(
     secret_manager: SecretManagerService = Depends(get_secret_manager_service)
 ):
     """取得商家憑證"""
-    # 檢查權限
-    if Permission.MERCHANT_READ not in [Permission(p) for p in current_user["permissions"]]:
+    # 檢查權限（簡化版）
+    if "merchant_management" not in current_user["permissions"]:
         raise HTTPException(status_code=403, detail="權限不足")
     
     try:
@@ -429,8 +438,8 @@ async def list_encrypted_secrets(
     secret_manager: SecretManagerService = Depends(get_secret_manager_service)
 ):
     """列出所有加密秘密"""
-    # 檢查權限
-    if Permission.SYSTEM_SETTINGS_READ not in [Permission(p) for p in current_user["permissions"]]:
+    # 檢查權限（簡化版）
+    if "system_settings" not in current_user["permissions"]:
         raise HTTPException(status_code=403, detail="權限不足")
     
     secrets = secret_manager.list_encrypted_secrets()

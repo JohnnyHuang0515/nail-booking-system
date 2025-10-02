@@ -18,13 +18,15 @@ class TransactionService:
         self, 
         user_id: Optional[uuid.UUID] = None,
         start_date: Optional[str] = None,
-        end_date: Optional[str] = None
+        end_date: Optional[str] = None,
+        merchant_id: Optional[uuid.UUID] = None
     ) -> List[Transaction]:
         """Get transactions with optional filtering."""
         return self.repository.get_transactions(
             user_id=user_id,
             start_date=start_date,
-            end_date=end_date
+            end_date=end_date,
+            merchant_id=merchant_id
         )
     
     def get_transaction_by_id(self, transaction_id: uuid.UUID) -> Optional[Transaction]:

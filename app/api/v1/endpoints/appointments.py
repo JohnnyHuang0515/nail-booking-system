@@ -27,13 +27,16 @@ class AppointmentUpdate(BaseModel):
 
 @router.get("/appointments")
 def list_appointments(
+    merchant_id: str,
     start_date: date = Query(..., description="Start date for filtering appointments"),
     end_date: date = Query(..., description="End date for filtering appointments"),
     service: AppointmentService = Depends(get_appointment_service),
 ):
     """Get a list of appointments within a date range."""
     try:
-        return service.get_appointments_by_date_range(start_date, end_date)
+        import uuid
+        merchant_uuid = uuid.UUID(merchant_id)
+        return service.get_appointments_by_date_range(start_date, end_date, merchant_uuid)
     except Exception as e:
         print(f"Appointments error: {e}")
         return []

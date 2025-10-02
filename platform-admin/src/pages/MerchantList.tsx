@@ -3,7 +3,7 @@ import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '../components/ui/dialog';
 import { 
   Plus, 
   Search, 
@@ -44,7 +44,7 @@ const MerchantList: React.FC<MerchantListProps> = ({ onMerchantSelect }) => {
   const fetchMerchants = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/v1/merchants');
+      const response = await fetch('http://localhost:8000/api/v1/merchants');
       if (response.ok) {
         const data = await response.json();
         setMerchants(data);
@@ -61,7 +61,7 @@ const MerchantList: React.FC<MerchantListProps> = ({ onMerchantSelect }) => {
   // 創建商家
   const handleCreate = async (values: any) => {
     try {
-      const response = await fetch('/api/v1/merchants', {
+      const response = await fetch('http://localhost:8000/api/v1/merchants', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -145,6 +145,9 @@ const MerchantList: React.FC<MerchantListProps> = ({ onMerchantSelect }) => {
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>新增商家</DialogTitle>
+              <DialogDescription>
+                請填寫商家基本資訊，包括 LINE 官方帳號設定。
+              </DialogDescription>
             </DialogHeader>
             <CreateMerchantForm onSubmit={handleCreate} />
           </DialogContent>

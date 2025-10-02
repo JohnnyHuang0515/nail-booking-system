@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     debug: bool = False
     
     # 資料庫設定
-    database_url: str = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/nail_booking")
+    database_url: str = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/nail_booking_db")
     
     # Redis 設定（用於快取和任務佇列）
     redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")

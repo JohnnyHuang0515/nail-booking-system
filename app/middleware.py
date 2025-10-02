@@ -153,8 +153,25 @@ class MultiTenantMiddleware(BaseHTTPMiddleware):
     
     def _requires_merchant_context(self, request: Request) -> bool:
         """檢查請求是否需要商家上下文"""
-        api_paths = ["/api/v1/services", "/api/v1/appointments", "/api/v1/transactions", "/api/v1/users"]
-        return any(request.url.path.startswith(path) for path in api_paths)
+        # 不需要商家上下文的 API 路徑
+        excluded_paths = [
+            "/api/v1/dashboard/summary",
+            "/api/v1/admin",
+            "/api/v1/merchant_auth",
+            "/api/v1/monitoring",
+            "/api/v1/reporting",
+            "/api/v1/security",
+            "/api/v1/support"
+        ]
+        
+        # 如果路徑在排除列表中，不需要商家上下文
+        if any(request.url.path.startswith(path) for path in excluded_paths):
+            return False
+            
+        # 需要商家上下文的 API 路徑（暫時禁用，讓 API 直接使用查詢參數）
+        # api_paths = ["/api/v1/services", "/api/v1/appointments", "/api/v1/transactions", "/api/v1/users"]
+        # return any(request.url.path.startswith(path) for path in api_paths)
+        return False
     
     async def _handle_merchant_context(self, request: Request):
         """處理商家上下文"""

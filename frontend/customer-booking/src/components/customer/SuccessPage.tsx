@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { CheckCircle, Calendar, Clock, Sparkles, User, Phone, MapPin, Star } from 'lucide-react';
+import liffService from '../../services/liff';
 
 interface SuccessPageProps {
   selectedDate: string;
@@ -36,8 +37,21 @@ export default function SuccessPage({
     return `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
   };
 
-  // Generate a mock booking reference
-  const bookingRef = `NB${Date.now().toString().slice(-6)}`;
+  // 預約編號應該從後端 API 回應中取得
+  const bookingRef = 'N/A';
+
+  // 自動關閉 LIFF 視窗（3秒後）
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      liffService.closeWindow();
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleCloseWindow = () => {
+    liffService.closeWindow();
+  };
 
   return (
     <div className="min-h-screen bg-background p-4">
@@ -170,9 +184,9 @@ export default function SuccessPage({
               <Phone className="h-4 w-4 mr-2" />
               聯繫店家
             </Button>
-            <Button variant="outline" className="flex-1">
-              <Star className="h-4 w-4 mr-2" />
-              加入最愛
+            <Button variant="outline" className="flex-1" onClick={handleCloseWindow}>
+              <CheckCircle className="h-4 w-4 mr-2" />
+              完成
             </Button>
           </div>
         </div>

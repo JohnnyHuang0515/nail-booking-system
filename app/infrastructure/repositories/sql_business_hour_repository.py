@@ -2,6 +2,7 @@
 營業時間資料存取層
 """
 from typing import List, Optional
+import uuid
 from uuid import UUID
 from sqlalchemy.orm import Session
 from sqlalchemy import select
@@ -209,3 +210,29 @@ class SQLBusinessHourRepository:
         """取得星期名稱"""
         day_names = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"]
         return day_names[day_of_week]
+    
+    def delete_all(self) -> None:
+        """刪除所有營業時間設定"""
+        self.db_session.query(BusinessHour).delete()
+        self.db_session.flush()
+    
+    def get_by_day(self, day_of_week: int, merchant_id: uuid.UUID = None) -> Optional[BusinessHour]:
+        """
+        根據星期幾獲取營業時間
+        """
+        stmt = select(BusinessHour).where(BusinessHour.day_of_week == day_of_week)
+        
+        # 如果提供了商家ID，按商家過濾
+        if merchant_id:
+            stmt = stmt.where(BusinessHour.merchant_id == merchant_id)
+        else:
+            # 如果沒有提供商家ID，使用第一個商家的資料（向後兼容）
+            stmt = stmt.limit(1)
+        
+        result = self.db_session.execute(stmt)
+        return result.scalar_one_or_none()
+    
+    def add(self, business_hour: BusinessHour) -> None:
+        """添加營業時間設定"""
+        self.db_session.add(business_hour)
+        self.db_session.flush()

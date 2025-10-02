@@ -13,6 +13,7 @@ class ServiceCreate(BaseModel):
     name: str
     price: float
     duration_minutes: int
+    merchant_id: str
     is_active: bool = True
 
 
@@ -24,12 +25,23 @@ class ServiceUpdate(BaseModel):
 
 
 @router.get("/services")
-def list_services(service: ServiceService = Depends(get_service_service)):
+def list_services(
+    merchant_id: str,
+    service: ServiceService = Depends(get_service_service)
+):
     """Get a list of all services."""
     try:
-        return service.get_all_services()
+        import uuid
+        print(f"Getting services for merchant_id: {merchant_id}")
+        merchant_uuid = uuid.UUID(merchant_id)
+        print(f"Converted to UUID: {merchant_uuid}")
+        services = service.get_all_services(merchant_uuid)
+        print(f"Found {len(services)} services")
+        return services
     except Exception as e:
         print(f"Services error: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 
@@ -39,12 +51,18 @@ def create_service(
     service: ServiceService = Depends(get_service_service)
 ):
     """Create a new service."""
-    return service.create_service(
-        name=service_data.name,
-        price=service_data.price,
-        duration_minutes=service_data.duration_minutes,
-        is_active=service_data.is_active,
-    )
+    try:
+        merchant_uuid = uuid.UUID(service_data.merchant_id)
+        return service.create_service(
+            name=service_data.name,
+            price=service_data.price,
+            duration_minutes=service_data.duration_minutes,
+            merchant_id=merchant_uuid,
+            is_active=service_data.is_active,
+        )
+    except Exception as e:
+        print(f"Create service error: {e}")
+        raise HTTPException(status_code=400, detail=f"Failed to create service: {str(e)}")
 
 
 @router.put("/services/{service_id}", response_model=Service)

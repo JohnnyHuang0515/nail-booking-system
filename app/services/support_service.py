@@ -192,7 +192,7 @@ class SupportService:
                 category=TicketCategory.TECHNICAL,
                 priority=TicketPriority.HIGH,
                 status=TicketStatus.IN_PROGRESS,
-                merchant_id=UUID("1"),
+                merchant_id=UUID("11111111-1111-1111-1111-111111111111"),
                 created_by="merchant_user",
                 assigned_to="ops_team",
                 created_at=datetime.now(),

@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Badge } from '../ui/badge';
-import { Calendar, Clock, Sparkles, User, Phone, Mail, ChevronLeft, CheckCircle } from 'lucide-react';
+import { Calendar, Clock, Sparkles, User, Phone, Mail, ChevronLeft, CheckCircle, History } from 'lucide-react';
+import storageService from '../../services/storage';
 
 interface ConfirmationPageProps {
   selectedDate: string;
   selectedTime: string;
   selectedService: any;
+  lineUser?: any;
   onNext: (customerInfo: any) => void;
   onBack: () => void;
 }
@@ -19,6 +21,7 @@ export default function ConfirmationPage({
   selectedDate, 
   selectedTime, 
   selectedService, 
+  lineUser,
   onNext, 
   onBack 
 }: ConfirmationPageProps) {
@@ -30,12 +33,49 @@ export default function ConfirmationPage({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [dataSource, setDataSource] = useState<'line' | 'stored' | 'manual'>('manual');
+
+  // 初始化用戶資料
+  useEffect(() => {
+    const initializeUserData = () => {
+      // 優先順序：LINE 資料 > 儲存的資料 > 空白
+      if (lineUser?.displayName) {
+        setCustomerInfo(prev => ({
+          ...prev,
+          name: lineUser.displayName
+        }));
+        setDataSource('line');
+      }
+
+      // 檢查是否有儲存的資料
+      const storedProfile = storageService.getUserProfile();
+      if (storedProfile && !storageService.isProfileExpired()) {
+        setCustomerInfo(prev => ({
+          name: lineUser?.displayName || storedProfile.name,
+          phone: storedProfile.phone,
+          email: storedProfile.email,
+          notes: prev.notes // 保留當前的備註
+        }));
+        
+        if (!lineUser?.displayName) {
+          setDataSource('stored');
+        }
+      }
+    };
+
+    initializeUserData();
+  }, [lineUser]);
 
   const handleInputChange = (field: string, value: string) => {
     setCustomerInfo(prev => ({
       ...prev,
       [field]: value
     }));
+    
+    // 如果用戶手動修改資料，標記為手動輸入
+    if (field !== 'notes') {
+      setDataSource('manual');
+    }
     
     // Clear error when user starts typing
     if (errors[field]) {
@@ -69,6 +109,13 @@ export default function ConfirmationPage({
 
   const handleSubmit = () => {
     if (validateForm()) {
+      // 儲存用戶資料供下次使用
+      storageService.saveUserProfile({
+        name: customerInfo.name,
+        phone: customerInfo.phone,
+        email: customerInfo.email
+      });
+      
       onNext(customerInfo);
     }
   };
@@ -114,7 +161,7 @@ export default function ConfirmationPage({
               <div>
                 <div className="font-medium">{formatDate(selectedDate)}</div>
                 <div className="text-sm text-muted-foreground">
-                  {selectedTime} - {calculateEndTime(selectedTime, selectedService.duration)}
+                  {selectedTime} - {calculateEndTime(selectedTime, selectedService.duration_minutes)}
                 </div>
               </div>
             </div>
@@ -125,17 +172,21 @@ export default function ConfirmationPage({
               <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-1">
                   <span className="font-medium">{selectedService.name}</span>
-                  <Badge className="bg-secondary text-secondary-foreground">
-                    {selectedService.category}
-                  </Badge>
+                  {selectedService.category && (
+                    <Badge className="bg-secondary text-secondary-foreground">
+                      {selectedService.category}
+                    </Badge>
+                  )}
                 </div>
-                <div className="text-sm text-muted-foreground mb-2">
-                  {selectedService.description}
-                </div>
+                {selectedService.description && (
+                  <div className="text-sm text-muted-foreground mb-2">
+                    {selectedService.description}
+                  </div>
+                )}
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center text-muted-foreground">
                     <Clock className="h-3 w-3 mr-1" />
-                    {selectedService.duration} 分鐘
+                    {selectedService.duration_minutes} 分鐘
                   </div>
                   <div className="font-medium text-primary">
                     NT${selectedService.price}
@@ -152,11 +203,58 @@ export default function ConfirmationPage({
             <CardTitle className="text-lg flex items-center">
               <User className="h-5 w-5 mr-2 text-primary" />
               聯絡資訊
+              {dataSource === 'line' && (
+                <Badge variant="secondary" className="ml-2 text-xs">
+                  已從 LINE 自動填入
+                </Badge>
+              )}
+              {dataSource === 'stored' && (
+                <Badge variant="outline" className="ml-2 text-xs">
+                  已載入上次資料
+                </Badge>
+              )}
             </CardTitle>
+            {dataSource === 'line' && lineUser && (
+              <div className="flex items-center space-x-3 mt-2">
+                {lineUser.pictureUrl && (
+                  <img 
+                    src={lineUser.pictureUrl} 
+                    alt="用戶頭像" 
+                    className="w-8 h-8 rounded-full"
+                  />
+                )}
+                <div className="text-sm text-muted-foreground">
+                  <span className="font-medium">{lineUser.displayName}</span>
+                  {lineUser.statusMessage && (
+                    <span className="ml-2">• {lineUser.statusMessage}</span>
+                  )}
+                </div>
+              </div>
+            )}
+            {dataSource === 'stored' && (
+              <div className="flex items-center space-x-2 mt-2">
+                <History className="h-4 w-4 text-muted-foreground" />
+                <div className="text-sm text-muted-foreground">
+                  載入了 {storageService.getProfileAge()} 天前的資料
+                </div>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="name">姓名 *</Label>
+              <Label htmlFor="name" className="flex items-center">
+                姓名 *
+                {dataSource === 'line' && customerInfo.name === lineUser?.displayName && (
+                  <Badge variant="outline" className="ml-2 text-xs">
+                    LINE 自動填入
+                  </Badge>
+                )}
+                {dataSource === 'stored' && (
+                  <Badge variant="outline" className="ml-2 text-xs">
+                    上次資料
+                  </Badge>
+                )}
+              </Label>
               <Input
                 id="name"
                 placeholder="請輸入您的姓名"

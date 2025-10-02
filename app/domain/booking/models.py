@@ -20,6 +20,7 @@ class Service(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    merchant_id: uuid.UUID
     name: str
     price: float
     duration_minutes: int
@@ -28,11 +29,12 @@ class Service(BaseModel):
 
 class AppointmentStatus(str, Enum):
     """Enum for the status of an appointment."""
-    BOOKED = "BOOKED"
-    CONFIRMED = "CONFIRMED"
-    COMPLETED = "COMPLETED"
-    CANCELLED = "CANCELLED"
-    NO_SHOW = "NO_SHOW"
+    PENDING = "pending"
+    CONFIRMED = "confirmed"
+    IN_PROGRESS = "in-progress"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    NO_SHOW = "no-show"
 
 
 class Appointment(BaseModel):
@@ -40,11 +42,18 @@ class Appointment(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
-    user_id: uuid.UUID
+    merchant_id: uuid.UUID
+    user_id: uuid.UUID | None = None  # 可選，支援直接預約
     service_id: uuid.UUID
     appointment_date: date
     appointment_time: time
-    status: AppointmentStatus = AppointmentStatus.BOOKED
+    status: AppointmentStatus = AppointmentStatus.PENDING
+    
+    # 直接預約欄位 (當沒有user_id時使用)
+    customer_name: str | None = None
+    customer_phone: str | None = None
+    customer_email: str | None = None
+    notes: str | None = None
     
     # 關聯資料 (可選)
     user: User | None = None
@@ -52,12 +61,12 @@ class Appointment(BaseModel):
 
     def cancel(self) -> None:
         """Cancels the appointment."""
-        if self.status not in [AppointmentStatus.BOOKED]:
-            raise ValueError("Only booked appointments can be cancelled.")
+        if self.status not in [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED]:
+            raise ValueError("Only pending or confirmed appointments can be cancelled.")
         self.status = AppointmentStatus.CANCELLED
 
     def complete(self) -> None:
         """Marks the appointment as completed."""
-        if self.status not in [AppointmentStatus.BOOKED]:
-            raise ValueError("Only a booked appointment can be completed.")
+        if self.status not in [AppointmentStatus.CONFIRMED, AppointmentStatus.IN_PROGRESS]:
+            raise ValueError("Only confirmed or in-progress appointments can be completed.")
         self.status = AppointmentStatus.COMPLETED

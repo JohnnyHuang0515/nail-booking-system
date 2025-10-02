@@ -69,7 +69,8 @@ class SqlTransactionRepository(AbstractTransactionRepository):
         self, 
         user_id: Optional[uuid.UUID] = None,
         start_date: Optional[str] = None,
-        end_date: Optional[str] = None
+        end_date: Optional[str] = None,
+        merchant_id: Optional[uuid.UUID] = None
     ) -> List[Transaction]:
         """Get transactions with optional filtering."""
         query = self.db.query(OrmTransaction)\
@@ -83,6 +84,9 @@ class SqlTransactionRepository(AbstractTransactionRepository):
         
         if user_id:
             filters.append(OrmTransaction.user_id == user_id)
+        
+        if merchant_id:
+            filters.append(OrmTransaction.merchant_id == merchant_id)
         
         if start_date:
             start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()

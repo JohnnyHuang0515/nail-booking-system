@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from app.infrastructure.repositories.sql_merchant_repository import SQLMerchantRepository
 from app.infrastructure.database.session import get_db_session
 from app.services.merchant_initialization_service import MerchantInitializationService
+from app.line_client import LineClient
 
 router = APIRouter()
 
@@ -68,6 +69,19 @@ async def create_merchant(
         if existing_merchant:
             raise HTTPException(status_code=400, detail="LINE Channel ID 已存在")
         
+        # 驗證 LINE 憑證
+        line_client = LineClient()
+        validation_result = await line_client.validate_credentials(
+            access_token=merchant_data.line_channel_access_token,
+            channel_secret=merchant_data.line_channel_secret
+        )
+        
+        if validation_result["status"] != "success":
+            raise HTTPException(
+                status_code=400, 
+                detail=f"LINE 憑證驗證失敗: {validation_result.get('message', '未知錯誤')}"
+            )
+        
         # 使用初始化服務創建商家
         init_service = MerchantInitializationService(db_session)
         result = await init_service.initialize_merchant(
@@ -93,6 +107,8 @@ async def create_merchant(
             created_at=merchant.created_at.isoformat()
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
         db_session.rollback()
         raise HTTPException(status_code=500, detail=f"創建商家失敗: {str(e)}")
@@ -118,7 +134,7 @@ async def list_merchants(
                 id=merchant.id,
                 name=merchant.name,
                 line_channel_id=merchant.line_channel_id,
-                timezone=merchant.timezone,
+                timezone=merchant.timezone or 'Asia/Taipei',  # 提供預設值
                 is_active=merchant.is_active,
                 created_at=merchant.created_at.isoformat()
             )
@@ -147,7 +163,7 @@ async def get_merchant(
             name=merchant.name,
             line_channel_id=merchant.line_channel_id,
             liff_id=merchant.liff_id,
-            timezone=merchant.timezone,
+            timezone=merchant.timezone or 'Asia/Taipei',  # 提供預設值
             is_active=merchant.is_active,
             created_at=merchant.created_at.isoformat()
         )

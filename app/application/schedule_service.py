@@ -16,31 +16,37 @@ class ScheduleService:
 
     # ... (BusinessHour methods remain the same)
 
-    def get_all_business_hours(self) -> List[BusinessHour]:
+    def get_all_business_hours(self, merchant_id: uuid.UUID = None) -> List[BusinessHour]:
         all_hours = []
         for i in range(7):
-            hours = self.business_hour_repo.get_by_day(i)
+            hours = self.business_hour_repo.get_by_day(i, merchant_id)
             if hours:
                 all_hours.append(hours)
         return all_hours
 
     def set_business_hours(self, hours: list[BusinessHour]) -> List[BusinessHour]:
-        self.business_hour_repo.delete_all()
-        for hour in hours:
-            self.business_hour_repo.add(hour)
+        if hours:
+            # 只刪除該商家的營業時間
+            merchant_id = hours[0].merchant_id
+            self.business_hour_repo.delete_by_merchant(merchant_id)
+            for hour in hours:
+                self.business_hour_repo.add(hour)
         # Return the hours that were passed in, as they have been added.
         return hours
 
     # --- TimeOff Methods ---
 
-    def get_time_offs_by_date(self, for_date: date) -> List[TimeOff]:
-        return self.time_off_repo.list_by_date(for_date)
+    def get_time_offs_by_date(self, for_date: date, merchant_id: uuid.UUID = None) -> List[TimeOff]:
+        return self.time_off_repo.list_by_date(for_date, merchant_id)
 
-    def get_all_time_offs(self) -> List[TimeOff]:
-        return self.time_off_repo.list_all()
+    def get_all_time_offs(self, merchant_id: uuid.UUID = None) -> List[TimeOff]:
+        return self.time_off_repo.list_all(merchant_id)
 
-    def add_time_off(self, start_datetime: datetime, end_datetime: datetime, reason: str | None) -> TimeOff:
+    def add_time_off(self, merchant_id: uuid.UUID, start_datetime: datetime, end_datetime: datetime, reason: str | None, branch_id: uuid.UUID | None = None, staff_id: uuid.UUID | None = None) -> TimeOff:
         time_off = TimeOff(
+            merchant_id=merchant_id,
+            branch_id=branch_id,
+            staff_id=staff_id,
             start_datetime=start_datetime,
             end_datetime=end_datetime,
             reason=reason,
