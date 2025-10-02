@@ -11,6 +11,7 @@ from app.infrastructure.repositories.sql_merchant_repository import SQLMerchantR
 from app.infrastructure.database.models import User as OrmUser
 from app.context import RequestContext
 from app.liff_auth import liff_security_middleware
+from app.api.v1.dependencies import get_current_merchant_from_token
 
 router = APIRouter()
 
@@ -147,19 +148,12 @@ async def legacy_login_with_line(
 
 @router.get("/users", response_model=List[UserResponse])
 async def list_users(
-    merchant_id: str,
+    current_merchant: dict = Depends(get_current_merchant_from_token()),
     db_session = Depends(get_db_session)
 ):
     """取得指定商家的所有用戶"""
     try:
-        merchant_uuid = uuid.UUID(merchant_id)
-        
-        # 取得商家資訊
-        merchant_repo = SQLMerchantRepository(db_session)
-        merchant = merchant_repo.find_by_id(merchant_uuid)
-        
-        if not merchant:
-            raise HTTPException(status_code=404, detail="找不到指定的商家")
+        merchant_uuid = uuid.UUID(current_merchant["id"])
         
         # 取得該商家的所有用戶
         user_repo = SQLUserRepository(db_session)
@@ -172,14 +166,12 @@ async def list_users(
                 name=user.name,
                 phone=user.phone,
                 merchant_id=str(merchant_uuid),
-                merchant_name=merchant.name,
+                merchant_name=current_merchant["name"],
                 created_at=user.created_at.isoformat()
             )
             for user in users
         ]
         
-    except ValueError:
-        raise HTTPException(status_code=400, detail="無效的商家ID格式")
     except Exception as e:
         print(f"取得用戶列表錯誤: {e}")
         raise HTTPException(status_code=500, detail="內部伺服器錯誤")

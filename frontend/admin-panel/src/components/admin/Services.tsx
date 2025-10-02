@@ -35,11 +35,8 @@ export default function Services() {
     try {
       setLoading(true);
       setError(null);
-      
-      // 使用正確的商家ID
-      const merchantId = '5a89c20e-befd-4bb3-a43b-e185ab0e4841';
 
-      const servicesData = await apiService.getServices(merchantId) as Service[];
+      const servicesData = await apiService.getServices() as Service[];
       setServices(servicesData);
     } catch (err) {
       console.error('載入服務資料失敗:', err);
@@ -51,13 +48,7 @@ export default function Services() {
 
   const handleCreateService = async (serviceData: any) => {
     try {
-      // 使用正確的商家ID
-      const merchantId = '5a89c20e-befd-4bb3-a43b-e185ab0e4841';
-
-      await apiService.createService({
-        ...serviceData,
-        merchant_id: merchantId
-      });
+      await apiService.createService(serviceData);
       
       setIsAddDialogOpen(false);
       loadServices();

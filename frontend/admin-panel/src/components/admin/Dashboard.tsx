@@ -42,18 +42,12 @@ export default function Dashboard({ onPageChange }: DashboardProps) {
     try {
       setLoading(true);
       setError(null);
-      
-      // 強制使用正確的商家ID
-      const merchantId = '5a89c20e-befd-4bb3-a43b-e185ab0e4841';
-      
-      // 保存到localStorage以便後續使用
-      localStorage.setItem('merchant_data', JSON.stringify({ id: merchantId, name: '美甲工作室測試' }));
 
       // 並行載入儀表板資料
       const [dashboardData, appointmentsData, servicesData] = await Promise.all([
-        apiService.getDashboardData(merchantId),
-        apiService.getAppointments(merchantId),
-        apiService.getServices(merchantId)
+        apiService.getDashboardData(),
+        apiService.getAppointments(),
+        apiService.getServices()
       ]) as [any, any[], any[]];
 
       // 處理統計資料

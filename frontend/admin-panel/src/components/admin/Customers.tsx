@@ -36,11 +36,8 @@ export default function Customers() {
     try {
       setLoading(true);
       setError(null);
-      
-      // 使用正確的商家ID
-      const merchantId = '5a89c20e-befd-4bb3-a43b-e185ab0e4841';
 
-      const customersData = await apiService.getCustomers(merchantId) as Customer[];
+      const customersData = await apiService.getCustomers() as Customer[];
       setCustomers(customersData);
     } catch (err) {
       console.error('載入客戶資料失敗:', err);

@@ -39,7 +39,7 @@ export default function Schedule() {
   useEffect(() => {
     const loadHolidays = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/v1/schedule/time_off/all');
+        const response = await fetch('/api/v1/schedule/time_off/all');
         if (response.ok) {
           const data = await response.json();
           // 轉換 API 資料格式為前端需要的格式
@@ -93,7 +93,7 @@ export default function Schedule() {
     
     try {
       // 調用 API 新增休假
-      const response = await fetch('http://localhost:8000/api/v1/schedule/time_off', {
+      const response = await fetch('/api/v1/schedule/time_off', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -134,7 +134,7 @@ export default function Schedule() {
   const handleDeleteHoliday = async (holidayId: number) => {
     try {
       // 調用 API 刪除休假
-      const response = await fetch(`http://localhost:8000/api/v1/schedule/time_off/${holidayId}`, {
+      const response = await fetch(`/api/v1/schedule/time_off/${holidayId}`, {
         method: 'DELETE',
       });
       

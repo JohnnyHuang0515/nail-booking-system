@@ -34,6 +34,24 @@ class SQLMerchantRepository:
         result = self.db_session.execute(stmt)
         return result.scalar_one_or_none()
     
+    def find_by_code(self, merchant_code: str) -> Optional[Merchant]:
+        """根據商家代碼查找商家"""
+        stmt = select(Merchant).where(
+            Merchant.merchant_code == merchant_code,
+            Merchant.is_active == True
+        )
+        result = self.db_session.execute(stmt)
+        return result.scalar_one_or_none()
+    
+    def find_by_account(self, account: str) -> Optional[Merchant]:
+        """根據商家帳號查找商家"""
+        stmt = select(Merchant).where(
+            Merchant.account == account,
+            Merchant.is_active == True
+        )
+        result = self.db_session.execute(stmt)
+        return result.scalar_one_or_none()
+    
     def create(self, name: str, line_channel_id: str, line_channel_secret: str, 
                line_channel_access_token: str, timezone: str = 'Asia/Taipei', 
                liff_id: str = None) -> Merchant:

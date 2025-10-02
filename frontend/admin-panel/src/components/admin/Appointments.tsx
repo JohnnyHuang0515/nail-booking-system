@@ -37,11 +37,8 @@ export default function Appointments() {
     try {
       setLoading(true);
       setError(null);
-      
-      // 使用正確的商家ID
-      const merchantId = '5a89c20e-befd-4bb3-a43b-e185ab0e4841';
 
-      const appointmentsData = await apiService.getAppointments(merchantId) as Appointment[];
+      const appointmentsData = await apiService.getAppointments() as Appointment[];
       setAppointments(appointmentsData);
     } catch (err) {
       console.error('載入預約資料失敗:', err);

@@ -20,15 +20,57 @@ from app.infrastructure.repositories.sql_user_repository import SQLUserRepositor
 router = APIRouter()
 security = HTTPBearer()
 
+
+class MerchantInfo(BaseModel):
+    """商家基本資訊"""
+    id: str
+    name: str
+    merchant_code: str
+    email: str
+    is_active: bool
+
+
+@router.get("/merchant-auth/merchant/{merchant_code}", response_model=MerchantInfo)
+async def get_merchant_info(merchant_code: str, db_session = Depends(get_db_session)):
+    """根據商家代碼獲取商家基本資訊（用於登入頁面顯示）"""
+    try:
+        merchant_repo = SQLMerchantRepository(db_session)
+        merchant = merchant_repo.find_by_code(merchant_code)
+        
+        if not merchant:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="找不到指定的商家"
+            )
+        
+        if not merchant.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="商家帳號已停用"
+            )
+        
+        return MerchantInfo(
+            id=str(merchant.id),
+            name=merchant.name,
+            merchant_code=merchant.merchant_code,
+            email="merchant@example.com",  # 暫時使用固定 email
+            is_active=merchant.is_active
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"獲取商家資訊失敗: {str(e)}"
+        )
+
 # JWT 設定
 MERCHANT_SECRET_KEY = os.getenv("MERCHANT_SECRET_KEY", "your-merchant-secret-key-here")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 
-class MerchantEmailLoginRequest(BaseModel):
-    """商家 Email 登入請求"""
-    email: str
+class MerchantLoginRequest(BaseModel):
+    """商家登入請求"""
+    account: str
     password: str
 
 
@@ -170,40 +212,59 @@ def get_current_merchant(credentials: HTTPAuthorizationCredentials = Depends(sec
         )
 
 
-@router.post("/merchant-auth/email-login", response_model=MerchantLoginResponse)
-async def merchant_email_login(request: MerchantEmailLoginRequest, db_session = Depends(get_db_session)):
-    """商家 Email 登入"""
+@router.post("/merchant-auth/login", response_model=MerchantLoginResponse)
+async def merchant_login(request: MerchantLoginRequest, db_session = Depends(get_db_session)):
+    """商家登入"""
     try:
-        # 這裡應該從資料庫查詢商家資料
-        # 暫時使用模擬驗證
-        if request.email == "merchant@example.com" and request.password == "merchant123":
-            # 模擬商家資料
-            merchant_data = {
-                "id": "merchant-uuid-1",
-                "name": "台北時尚美甲",
-                "email": request.email,
-                "line_channel_id": "taipei_fashion_channel_1234567890abcdef",
-                "liff_id": "liff-taipei-fashion-123",
-                "timezone": "Asia/Taipei",
-                "is_active": True
-            }
-            
-            access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-            access_token = create_merchant_access_token(
-                data={"merchant_id": merchant_data["id"], "login_type": "email"}, 
-                expires_delta=access_token_expires
-            )
-            
-            return MerchantLoginResponse(
-                access_token=access_token,
-                token_type="bearer",
-                merchant=merchant_data
-            )
-        else:
+        # 根據帳號查找商家
+        merchant_repo = SQLMerchantRepository(db_session)
+        merchant = merchant_repo.find_by_account(request.account)
+        
+        if not merchant:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Email 或密碼錯誤"
+                detail="帳號或密碼錯誤"
             )
+        
+        # 驗證密碼
+        if not merchant.password_hash:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="帳號未設置密碼，請聯繫管理員"
+            )
+        
+        if not bcrypt.checkpw(request.password.encode('utf-8'), merchant.password_hash.encode('utf-8')):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="帳號或密碼錯誤"
+            )
+        
+        # 登入成功，創建 JWT token
+        merchant_data = {
+            "id": str(merchant.id),
+            "name": merchant.name,
+            "account": merchant.account,
+            "merchant_code": merchant.merchant_code,
+            "line_channel_id": merchant.line_channel_id,
+            "liff_id": merchant.liff_id or "default-liff-id",
+            "timezone": merchant.timezone,
+            "is_active": merchant.is_active
+        }
+        
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_merchant_access_token(
+            data={"merchant_id": merchant_data["id"], "login_type": "account"}, 
+            expires_delta=access_token_expires
+        )
+        
+        return MerchantLoginResponse(
+            access_token=access_token,
+            token_type="bearer",
+            merchant=merchant_data
+        )
+        
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
 class ApiService {
   private baseURL: string;
@@ -58,10 +58,10 @@ class ApiService {
   }
 
   // 商家認證 API
-  async merchantEmailLogin(email: string, password: string) {
-    return this.request('/api/v1/merchant-auth/email-login', {
+  async merchantLogin(account: string, password: string) {
+    return this.request('/api/v1/merchant-auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ account, password }),
     });
   }
 
@@ -70,11 +70,10 @@ class ApiService {
   }
 
   // 預約管理 API
-  async getAppointments(merchantId: string, startDate?: string, endDate?: string) {
+  async getAppointments(startDate?: string, endDate?: string) {
     const today = new Date().toISOString().split('T')[0];
     const defaultEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const params = new URLSearchParams({
-      merchant_id: merchantId,
       start_date: startDate || today,
       end_date: endDate || defaultEndDate
     });
@@ -102,8 +101,8 @@ class ApiService {
   }
 
   // 服務管理 API
-  async getServices(merchantId: string) {
-    return this.request(`/api/v1/services?merchant_id=${merchantId}`);
+  async getServices() {
+    return this.request('/api/v1/services');
   }
 
   async createService(serviceData: any) {
@@ -127,8 +126,8 @@ class ApiService {
   }
 
   // 顧客管理 API
-  async getCustomers(merchantId: string) {
-    return this.request(`/api/v1/users?merchant_id=${merchantId}`);
+  async getCustomers() {
+    return this.request('/api/v1/users');
   }
 
   async getCustomer(customerId: string) {
@@ -136,43 +135,43 @@ class ApiService {
   }
 
   // 營業時間管理 API
-  async getBusinessHours(merchantId: string) {
-    return this.request(`/api/v1/business-hours?merchant_id=${merchantId}`);
+  async getBusinessHours() {
+    return this.request('/api/v1/schedule/business_hours');
   }
 
-  async updateBusinessHours(merchantId: string, businessHours: any) {
-    return this.request(`/api/v1/business-hours?merchant_id=${merchantId}`, {
-      method: 'PUT',
+  async updateBusinessHours(businessHours: any) {
+    return this.request('/api/v1/schedule/business_hours', {
+      method: 'POST',
       body: JSON.stringify(businessHours),
     });
   }
 
   // 休假管理 API
-  async getTimeOffs(merchantId: string) {
-    return this.request(`/api/v1/time-offs?merchant_id=${merchantId}`);
+  async getTimeOffs() {
+    return this.request('/api/v1/schedule/time_off/all');
   }
 
   async createTimeOff(timeOffData: any) {
-    return this.request('/api/v1/time-offs', {
+    return this.request('/api/v1/schedule/time_off', {
       method: 'POST',
       body: JSON.stringify(timeOffData),
     });
   }
 
   async deleteTimeOff(timeOffId: string) {
-    return this.request(`/api/v1/time-offs/${timeOffId}`, {
+    return this.request(`/api/v1/schedule/time_off/${timeOffId}`, {
       method: 'DELETE',
     });
   }
 
   // 儀表板 API
-  async getDashboardData(merchantId: string) {
-    return this.request(`/api/v1/dashboard/summary`);
+  async getDashboardData() {
+    return this.request('/api/v1/dashboard/summary');
   }
 
   // 交易記錄 API
-  async getTransactions(merchantId: string) {
-    return this.request(`/api/v1/transactions?merchant_id=${merchantId}`);
+  async getTransactions() {
+    return this.request('/api/v1/transactions');
   }
 
   async createTransaction(transactionData: any) {

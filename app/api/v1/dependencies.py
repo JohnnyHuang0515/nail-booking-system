@@ -103,3 +103,64 @@ def get_transaction_service(
 ) -> TransactionService:
     """FastAPI dependency to get the transaction service."""
     return TransactionService(transaction_repo)
+
+
+def get_current_merchant_from_token():
+    """Get current merchant from JWT token - moved here to avoid circular imports"""
+    from fastapi import Depends, HTTPException, status
+    from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+    from app.infrastructure.database.session import get_db_session
+    from app.infrastructure.repositories.sql_merchant_repository import SQLMerchantRepository
+    import jwt
+    import os
+    from uuid import UUID
+    
+    security = HTTPBearer()
+    MERCHANT_SECRET_KEY = os.getenv("MERCHANT_SECRET_KEY", "your-merchant-secret-key-here")
+    ALGORITHM = "HS256"
+    
+    def _get_current_merchant(
+        credentials: HTTPAuthorizationCredentials = Depends(security), 
+        db_session = Depends(get_db_session)
+    ) -> dict:
+        """取得當前商家"""
+        try:
+            payload = jwt.decode(credentials.credentials, MERCHANT_SECRET_KEY, algorithms=[ALGORITHM])
+            merchant_id: str = payload.get("merchant_id")
+            if merchant_id is None:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="無效的認證憑證",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            
+            # 從資料庫查詢商家資料
+            merchant_repo = SQLMerchantRepository(db_session)
+            merchant = merchant_repo.find_by_id(UUID(merchant_id))
+            
+            if not merchant or not merchant.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="商家不存在或已停用",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            
+            return {
+                "id": str(merchant.id),
+                "name": merchant.name,
+                "account": merchant.account,
+                "merchant_code": merchant.merchant_code,
+                "line_channel_id": merchant.line_channel_id,
+                "liff_id": merchant.liff_id or "default-liff-id",
+                "timezone": merchant.timezone,
+                "is_active": merchant.is_active
+            }
+            
+        except jwt.PyJWTError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="無效的認證憑證",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    
+    return _get_current_merchant

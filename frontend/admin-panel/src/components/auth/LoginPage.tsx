@@ -4,31 +4,40 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription } from '../ui/alert';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { User, Lock, Eye, EyeOff } from 'lucide-react';
 
 interface LoginPageProps {
   onLoginSuccess: (merchantData: any) => void;
 }
 
 export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
-  const [email, setEmail] = useState('');
+  const [account, setAccount] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
+    if (!account || !password) {
+      setError('請輸入帳號和密碼');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await fetch('http://localhost:8000/api/v1/merchant-auth/email-login', {
+      const response = await fetch('/api/v1/merchant-auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ 
+          account, 
+          password
+        }),
       });
 
       if (response.ok) {
@@ -68,7 +77,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
           <CardHeader>
             <CardTitle>登入您的帳號</CardTitle>
             <CardDescription>
-              輸入您的 Email 和密碼以存取商家後台
+              輸入您的商家帳號和密碼以存取後台
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -78,17 +87,17 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
               </Alert>
             )}
 
-            <form onSubmit={handleEmailLogin} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="account">商家帳號</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
-                    id="email"
-                    type="email"
-                    placeholder="merchant@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    id="account"
+                    type="text"
+                    placeholder="taipei_nail"
+                    value={account}
+                    onChange={(e) => setAccount(e.target.value)}
                     className="pl-10"
                     required
                   />
@@ -152,7 +161,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
         </Card>
 
         <div className="text-center text-sm text-gray-600">
-          <p>測試帳號：merchant@example.com / merchant123</p>
+          <p>測試帳號：taipei_nail / merchant123</p>
         </div>
       </div>
     </div>

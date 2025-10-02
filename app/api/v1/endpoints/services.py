@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from app.application.service_service import ServiceService
 from app.domain.booking.models import Service
-from app.api.v1.dependencies import get_service_service
+from app.api.v1.dependencies import get_service_service, get_current_merchant_from_token
 
 router = APIRouter()
 
@@ -26,22 +26,17 @@ class ServiceUpdate(BaseModel):
 
 @router.get("/services")
 def list_services(
-    merchant_id: str,
+    current_merchant: dict = Depends(get_current_merchant_from_token()),
     service: ServiceService = Depends(get_service_service)
 ):
     """Get a list of all services."""
     try:
         import uuid
-        print(f"Getting services for merchant_id: {merchant_id}")
-        merchant_uuid = uuid.UUID(merchant_id)
-        print(f"Converted to UUID: {merchant_uuid}")
+        merchant_uuid = uuid.UUID(current_merchant["id"])
         services = service.get_all_services(merchant_uuid)
-        print(f"Found {len(services)} services")
         return services
     except Exception as e:
         print(f"Services error: {e}")
-        import traceback
-        traceback.print_exc()
         return []
 
 

@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from app.application.appointment_service import AppointmentService
 from app.domain.booking.models import Appointment, AppointmentStatus
-from app.api.v1.dependencies import get_appointment_service
+from app.api.v1.dependencies import get_appointment_service, get_current_merchant_from_token
 
 router = APIRouter()
 
@@ -27,15 +27,15 @@ class AppointmentUpdate(BaseModel):
 
 @router.get("/appointments")
 def list_appointments(
-    merchant_id: str,
     start_date: date = Query(..., description="Start date for filtering appointments"),
     end_date: date = Query(..., description="End date for filtering appointments"),
+    current_merchant: dict = Depends(get_current_merchant_from_token()),
     service: AppointmentService = Depends(get_appointment_service),
 ):
     """Get a list of appointments within a date range."""
     try:
         import uuid
-        merchant_uuid = uuid.UUID(merchant_id)
+        merchant_uuid = uuid.UUID(current_merchant["id"])
         return service.get_appointments_by_date_range(start_date, end_date, merchant_uuid)
     except Exception as e:
         print(f"Appointments error: {e}")

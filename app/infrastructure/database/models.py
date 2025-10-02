@@ -15,6 +15,9 @@ class Merchant(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(100), nullable=False)
+    account = Column(String(50), unique=True, nullable=True, index=True)  # 商家登入帳號
+    password_hash = Column(String(255), nullable=True)  # 商家登入密碼雜湊
+    merchant_code = Column(String(20), unique=True, nullable=False, index=True)  # 商家代碼
     line_channel_id = Column(String(64), unique=True, nullable=False, index=True)
     line_channel_secret = Column(Text, nullable=False)
     line_channel_access_token = Column(Text, nullable=False)

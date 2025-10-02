@@ -35,8 +35,8 @@ export default function App() {
           customerApiService.setMerchantId(merchantContext.merchant_id);
           console.log('商家上下文已設定:', merchantContext);
         } else {
-          // 如果沒有商家上下文，使用預設的測試商家 ID
-          const defaultMerchantId = '5a89c20e-befd-4bb3-a43b-e185ab0e4841';
+          // 如果沒有商家上下文，使用正確的商家 ID
+          const defaultMerchantId = '1e2fae99-150b-44ec-943d-f7be6ab9473a';
           customerApiService.setMerchantId(defaultMerchantId);
           console.log('使用預設商家 ID:', defaultMerchantId);
         }
@@ -51,7 +51,7 @@ export default function App() {
       } catch (error) {
         console.error('LIFF 初始化失敗:', error);
         // 即使失敗也要設定預設商家 ID
-        const defaultMerchantId = '5a89c20e-befd-4bb3-a43b-e185ab0e4841';
+        const defaultMerchantId = '1e2fae99-150b-44ec-943d-f7be6ab9473a';
         customerApiService.setMerchantId(defaultMerchantId);
         setIsLiffReady(true);
       }

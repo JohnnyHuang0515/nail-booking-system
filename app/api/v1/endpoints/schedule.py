@@ -94,7 +94,7 @@ def add_time_off(
 ):
     """Add a new time off period."""
     # 使用正確的測試商家 ID
-    merchant_id = uuid.UUID("c9a8982e-5f17-459b-a83e-690057e4da71")
+    merchant_id = uuid.UUID("1e2fae99-150b-44ec-943d-f7be6ab9473a")
     return service.add_time_off(merchant_id=merchant_id, **time_off_data.model_dump())
 
 
