@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface MerchantData {
   id: string;
@@ -15,11 +15,14 @@ export function useAuth() {
   const [merchantData, setMerchantData] = useState<MerchantData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
+  const logout = () => {
+    localStorage.removeItem('merchant_token');
+    localStorage.removeItem('merchant_data');
+    setMerchantData(null);
+    setIsAuthenticated(false);
+  };
 
-  const checkAuthStatus = () => {
+  const checkAuthStatus = useCallback(() => {
     const token = localStorage.getItem('merchant_token');
     const storedMerchantData = localStorage.getItem('merchant_data');
 
@@ -34,20 +37,17 @@ export function useAuth() {
       }
     }
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    checkAuthStatus();
+  }, [checkAuthStatus]);
 
   const login = (merchant: MerchantData, token: string) => {
     localStorage.setItem('merchant_token', token);
     localStorage.setItem('merchant_data', JSON.stringify(merchant));
     setMerchantData(merchant);
     setIsAuthenticated(true);
-  };
-
-  const logout = () => {
-    localStorage.removeItem('merchant_token');
-    localStorage.removeItem('merchant_data');
-    setMerchantData(null);
-    setIsAuthenticated(false);
   };
 
   const getAuthHeaders = () => {

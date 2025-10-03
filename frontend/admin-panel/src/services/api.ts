@@ -73,7 +73,9 @@ class ApiService {
   async getAppointments(startDate?: string, endDate?: string) {
     const today = new Date().toISOString().split('T')[0];
     const defaultEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const merchantId = '1e2fae99-150b-44ec-943d-f7be6ab9473a'; // 測試商家 ID
     const params = new URLSearchParams({
+      merchant_id: merchantId,
       start_date: startDate || today,
       end_date: endDate || defaultEndDate
     });
@@ -102,7 +104,8 @@ class ApiService {
 
   // 服務管理 API
   async getServices() {
-    return this.request('/api/v1/services');
+    const merchantId = '1e2fae99-150b-44ec-943d-f7be6ab9473a'; // 測試商家 ID
+    return this.request(`/api/v1/services?merchant_id=${merchantId}`);
   }
 
   async createService(serviceData: any) {

@@ -44,22 +44,55 @@ export default function Dashboard({ onPageChange }: DashboardProps) {
       setError(null);
 
       // 並行載入儀表板資料
-      const [dashboardData, appointmentsData, servicesData] = await Promise.all([
-        apiService.getDashboardData(),
-        apiService.getAppointments(),
+      // 獲取過去30天到未來30天的預約資料，以便計算活躍客戶和收入
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+      
+      const thirtyDaysLater = new Date();
+      thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30);
+      const thirtyDaysLaterStr = thirtyDaysLater.toISOString().split('T')[0];
+      
+      const [appointmentsData, servicesData] = await Promise.all([
+        apiService.getAppointments(thirtyDaysAgoStr, thirtyDaysLaterStr),
         apiService.getServices()
-      ]) as [any, any[], any[]];
+      ]) as [any[], any[]];
 
       // 處理統計資料
       const today = new Date().toISOString().split('T')[0];
+      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+      
       const todayAppts = appointmentsData.filter((apt: any) => 
         apt.appointment_date === today
       );
 
+      // 計算本月收入（只計算已完成的預約）
+      const monthlyRevenue = appointmentsData
+        .filter((apt: any) => 
+          apt.status === 'completed' && 
+          apt.appointment_date?.startsWith(currentMonth)
+        )
+        .reduce((sum: number, apt: any) => {
+          return sum + (apt.service?.price || 0);
+        }, 0);
+
+      // 計算活躍客戶（本月已完成預約的客戶，更符合業務需求）
+      const activeCustomersSet = new Set();
+      appointmentsData
+        .filter((apt: any) => 
+          apt.appointment_date?.startsWith(currentMonth) && 
+          apt.status === 'completed' &&
+          apt.customer_name &&
+          apt.customer_phone
+        )
+        .forEach((apt: any) => {
+          activeCustomersSet.add(`${apt.customer_name}-${apt.customer_phone}`);
+        });
+
       setStats({
         todayAppointments: todayAppts.length,
-        monthlyRevenue: dashboardData.monthlyRevenue || 0,
-        activeCustomers: dashboardData.activeCustomers || 0,
+        monthlyRevenue: monthlyRevenue,
+        activeCustomers: activeCustomersSet.size,
         totalServices: servicesData.length || 0
       });
 
@@ -67,7 +100,7 @@ export default function Dashboard({ onPageChange }: DashboardProps) {
       const formattedAppointments = todayAppts.map((apt: any) => ({
         id: apt.id,
         time: apt.appointment_time,
-        service: apt.service_name || '未知服務',
+        service: apt.service?.name || '未知服務',
         customer: apt.customer_name || '未知客戶',
         status: getStatusText(apt.status)
       }));
@@ -95,7 +128,7 @@ export default function Dashboard({ onPageChange }: DashboardProps) {
 
   const statsConfig = [
     { title: '今日預約', value: stats.todayAppointments.toString(), icon: Calendar, color: 'text-primary' },
-    { title: '本月收入', value: `¥${stats.monthlyRevenue.toLocaleString()}`, icon: TrendingUp, color: 'text-green-600' },
+    { title: '本月收入', value: `NT$${stats.monthlyRevenue.toLocaleString()}`, icon: TrendingUp, color: 'text-green-600' },
     { title: '活躍顧客', value: stats.activeCustomers.toString(), icon: Users, color: 'text-blue-500' },
     { title: '服務項目', value: stats.totalServices.toString(), icon: Sparkles, color: 'text-purple-500' },
   ];
@@ -163,19 +196,31 @@ export default function Dashboard({ onPageChange }: DashboardProps) {
             <div className="space-y-4">
               {todayAppointments.length > 0 ? (
                 todayAppointments.map((appointment) => (
-                  <div key={appointment.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                    <div>
-                      <div className="font-medium">{appointment.time}</div>
-                      <div className="text-sm text-muted-foreground">{appointment.service}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-medium">{appointment.customer}</div>
-                      <div className={`text-xs px-2 py-1 rounded-full inline-block ${
-                        appointment.status === '已確認' ? 'bg-green-100 text-green-700' :
-                        appointment.status === '進行中' ? 'bg-blue-100 text-blue-700' :
-                        'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {appointment.status}
+                  <div key={appointment.id} className="flex items-center justify-between p-4 bg-muted rounded-lg hover:bg-muted/80 transition-colors">
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="font-medium text-lg">{appointment.customer}</div>
+                        <div className={`text-xs px-3 py-1 rounded-full font-medium ${
+                          appointment.status === '已確認' ? 'bg-green-100 text-green-700 border border-green-200' :
+                          appointment.status === '進行中' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
+                          appointment.status === '已完成' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
+                          appointment.status === '已取消' ? 'bg-red-100 text-red-700 border border-red-200' :
+                          'bg-yellow-100 text-yellow-700 border border-yellow-200'
+                        }`}>
+                          {appointment.status}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center">
+                            <Clock className="h-4 w-4 mr-1" />
+                            {appointment.time}
+                          </div>
+                          <div className="flex items-center">
+                            <Sparkles className="h-4 w-4 mr-1" />
+                            {appointment.service}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -37,7 +37,53 @@ export default function Customers() {
       setLoading(true);
       setError(null);
 
-      const customersData = await apiService.getCustomers() as Customer[];
+      // 從預約資料中提取顧客信息
+      const appointmentsData = await apiService.getAppointments() as any[];
+      
+      // 從預約中提取唯一的顧客資料
+      const customerMap = new Map();
+      
+      appointmentsData.forEach(appointment => {
+        if (appointment.customer_name && appointment.customer_phone) {
+          const customerKey = `${appointment.customer_name}-${appointment.customer_phone}`;
+          
+          if (!customerMap.has(customerKey)) {
+            customerMap.set(customerKey, {
+              id: `customer-${customerKey}`,
+              name: appointment.customer_name,
+              phone: appointment.customer_phone,
+              email: appointment.customer_email || '',
+              totalAppointments: 0,
+              lastVisit: appointment.appointment_date,
+              totalSpent: 0,
+              notes: appointment.notes || '',
+              status: 'new',
+              birthDate: ''
+            });
+          }
+          
+          // 更新統計資料
+          const customer = customerMap.get(customerKey);
+          customer.totalAppointments++;
+          customer.totalSpent += appointment.service?.price || 0;
+          
+          // 更新最後訪問日期
+          if (new Date(appointment.appointment_date) > new Date(customer.lastVisit)) {
+            customer.lastVisit = appointment.appointment_date;
+          }
+        }
+      });
+      
+      // 根據統計資料更新顧客狀態
+      const customersData = Array.from(customerMap.values()).map(customer => {
+        if (customer.totalAppointments >= 10 || customer.totalSpent >= 10000) {
+          customer.status = 'vip';
+        } else if (customer.totalAppointments >= 3) {
+          customer.status = 'active';
+        }
+        return customer;
+      });
+      
       setCustomers(customersData);
     } catch (err) {
       console.error('載入客戶資料失敗:', err);
@@ -265,6 +311,9 @@ export default function Customers() {
                     <DialogContent className="max-w-md">
                       <DialogHeader>
                         <DialogTitle>編輯顧客資料</DialogTitle>
+                        <DialogDescription>
+                          修改顧客的基本資訊和備註。
+                        </DialogDescription>
                       </DialogHeader>
                       <CustomerForm 
                         customer={customer} 
