@@ -76,6 +76,38 @@ class AppointmentService:
         self.appointment_repo.update(appointment)
         return appointment
 
+    def update_appointment_partial(
+        self, 
+        appointment_id: uuid.UUID, 
+        **kwargs
+    ) -> Appointment | None:
+        appointment = self.appointment_repo.get_by_id(appointment_id)
+        if not appointment:
+            return None
+
+        # 只更新提供的欄位
+        for key, value in kwargs.items():
+            if hasattr(appointment, key):
+                setattr(appointment, key, value)
+        
+        # 重新創建Domain對象以避免SQLAlchemy問題
+        updated_appointment = Appointment(
+            id=appointment.id,
+            merchant_id=appointment.merchant_id,
+            user_id=appointment.user_id,
+            service_id=appointment.service_id,
+            appointment_date=appointment.appointment_date,
+            appointment_time=appointment.appointment_time,
+            status=appointment.status,
+            customer_name=appointment.customer_name,
+            customer_phone=appointment.customer_phone,
+            customer_email=appointment.customer_email,
+            notes=appointment.notes
+        )
+        
+        self.appointment_repo.update(updated_appointment)
+        return updated_appointment
+
     def update_appointment_status(self, appointment_id: uuid.UUID, status: AppointmentStatus) -> Appointment | None:
         appointment = self.appointment_repo.get_by_id(appointment_id)
         if not appointment:

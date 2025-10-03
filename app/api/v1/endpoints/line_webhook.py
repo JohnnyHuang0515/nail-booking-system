@@ -39,7 +39,7 @@ async def line_webhook(request: Request):
         
         # 處理事件
         events = payload.get("events", [])
-        line_client = get_line_client()
+        line_client = LineClient()
         
         for event in events:
             await _handle_line_event(event, merchant_id, line_client, merchant_data)

@@ -379,7 +379,7 @@ async def get_line_login_url(merchant_id: UUID, db_session = Depends(get_db_sess
             f"https://access.line.me/oauth2/v2.1/authorize?"
             f"response_type=code&"
             f"client_id={merchant['line_channel_id']}&"
-            f"redirect_uri=https://your-domain.com/merchant-auth/line-callback&"
+            f"redirect_uri=http://localhost:3001/merchant-auth/line-callback&"
             f"state={state}&"
             f"scope=profile"
         )

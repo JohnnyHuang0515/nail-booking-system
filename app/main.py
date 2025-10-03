@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1.endpoints import booking, services, schedule, appointments, dashboard, users, transactions, merchants, line_webhook, admin, merchant_auth, merchant_settings, monitoring, reporting, security, support, billing, merchant_context
+from app.api.v1.endpoints import booking, services, schedule, appointments, dashboard, users, transactions, merchants, line_webhook, simple_webhook, webhook_test, admin, merchant_auth, merchant_settings, monitoring, reporting, security, support, billing, merchant_context
 from app.middleware import LineWebhookMiddleware, MultiTenantMiddleware
 
 app = FastAPI(
@@ -13,17 +13,21 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:3002"],  # React development servers
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://localhost:3001", 
+        "http://localhost:3002",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Add LINE Webhook middleware (處理多商家 LINE 事件)
-app.add_middleware(LineWebhookMiddleware)
+# Add LINE Webhook middleware (處理多商家 LINE 事件) - 暫時禁用
+# app.add_middleware(LineWebhookMiddleware)
 
-# Add Multi-tenant middleware (處理一般 API 請求的商家上下文)
-app.add_middleware(MultiTenantMiddleware)
+# Add Multi-tenant middleware (處理一般 API 請求的商家上下文) - 暫時禁用
+# app.add_middleware(MultiTenantMiddleware)
 
 # Include the v1 API routers
 # 平台管理員 API
@@ -56,8 +60,11 @@ app.include_router(billing.router, prefix="/api/v1", tags=["Billing"])
 # 商家上下文 API
 app.include_router(merchant_context.router, prefix="/api/v1", tags=["Merchant Context"])
 
-# LINE Webhook API
-app.include_router(line_webhook.router, prefix="/api/v1", tags=["LINE Webhook"])
+# LINE Webhook API (暫時使用簡化版本)
+app.include_router(simple_webhook.router, prefix="/api/v1", tags=["LINE Webhook"])
+
+# Webhook 測試端點
+app.include_router(webhook_test.router, prefix="/api/v1", tags=["Webhook Test"])
 
 # 業務 API (需要多租戶支援)
 app.include_router(booking.router, prefix="/api/v1", tags=["Booking"])

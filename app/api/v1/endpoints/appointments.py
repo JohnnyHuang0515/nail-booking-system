@@ -18,24 +18,24 @@ class AppointmentCreate(BaseModel):
 
 
 class AppointmentUpdate(BaseModel):
-    user_id: uuid.UUID
-    service_id: uuid.UUID
-    appointment_date: date
-    appointment_time: time
-    status: AppointmentStatus
+    user_id: uuid.UUID | None = None
+    service_id: uuid.UUID | None = None
+    appointment_date: date | None = None
+    appointment_time: time | None = None
+    status: AppointmentStatus | None = None
 
 
 @router.get("/appointments")
 def list_appointments(
+    merchant_id: str = Query(..., description="Merchant ID"),
     start_date: date = Query(..., description="Start date for filtering appointments"),
     end_date: date = Query(..., description="End date for filtering appointments"),
-    current_merchant: dict = Depends(get_current_merchant_from_token()),
     service: AppointmentService = Depends(get_appointment_service),
 ):
     """Get a list of appointments within a date range."""
     try:
         import uuid
-        merchant_uuid = uuid.UUID(current_merchant["id"])
+        merchant_uuid = uuid.UUID(merchant_id)
         return service.get_appointments_by_date_range(start_date, end_date, merchant_uuid)
     except Exception as e:
         print(f"Appointments error: {e}")
@@ -58,10 +58,16 @@ def update_appointment(
     service: AppointmentService = Depends(get_appointment_service),
 ):
     """Update an appointment."""
-    updated_appointment = service.update_appointment(appointment_id, **update_data.model_dump())
-    if not updated_appointment:
-        raise HTTPException(status_code=404, detail="Appointment not found")
-    return updated_appointment
+    try:
+        # 只傳遞非None的欄位
+        update_dict = {k: v for k, v in update_data.model_dump().items() if v is not None}
+        updated_appointment = service.update_appointment_partial(appointment_id, **update_dict)
+        if not updated_appointment:
+            raise HTTPException(status_code=404, detail="Appointment not found")
+        return updated_appointment
+    except Exception as e:
+        print(f"更新預約錯誤: {e}")
+        raise HTTPException(status_code=500, detail=f"更新預約失敗: {str(e)}")
 
 
 @router.put("/appointments/{appointment_id}/status", response_model=Appointment)

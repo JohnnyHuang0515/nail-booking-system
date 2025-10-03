@@ -93,13 +93,23 @@ class SQLMerchantRepository:
         if not merchant:
             return None
         
-        # 解密敏感資料
+        # 解密敏感資料（如果已加密）或直接使用明文
+        try:
+            line_channel_secret = token_encryption_manager.decrypt_access_token(merchant.line_channel_secret)
+        except:
+            line_channel_secret = merchant.line_channel_secret
+            
+        try:
+            line_channel_access_token = token_encryption_manager.decrypt_access_token(merchant.line_channel_access_token)
+        except:
+            line_channel_access_token = merchant.line_channel_access_token
+        
         merchant_data = {
             "id": merchant.id,
             "name": merchant.name,
             "line_channel_id": merchant.line_channel_id,
-            "line_channel_secret": token_encryption_manager.decrypt_access_token(merchant.line_channel_secret),
-            "line_channel_access_token": token_encryption_manager.decrypt_access_token(merchant.line_channel_access_token),
+            "line_channel_secret": line_channel_secret,
+            "line_channel_access_token": line_channel_access_token,
             "liff_id": merchant.liff_id,
             "timezone": merchant.timezone,
             "is_active": merchant.is_active,

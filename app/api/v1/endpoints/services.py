@@ -5,8 +5,30 @@ from pydantic import BaseModel
 from app.application.service_service import ServiceService
 from app.domain.booking.models import Service
 from app.api.v1.dependencies import get_service_service, get_current_merchant_from_token
+from typing import Optional
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 router = APIRouter()
+
+# 可選的認證依賴
+def get_optional_merchant_auth():
+    """可選的商家認證依賴"""
+    security = HTTPBearer(auto_error=False)
+    
+    def _get_optional_merchant(
+        credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
+    ) -> Optional[dict]:
+        if not credentials:
+            return None
+        
+        try:
+            # 嘗試使用現有的認證邏輯
+            return get_current_merchant_from_token()(credentials)
+        except:
+            return None
+    
+    return _get_optional_merchant
 
 
 class ServiceCreate(BaseModel):
@@ -26,13 +48,22 @@ class ServiceUpdate(BaseModel):
 
 @router.get("/services")
 def list_services(
-    current_merchant: dict = Depends(get_current_merchant_from_token()),
+    merchant_id: Optional[str] = None,
+    current_merchant: Optional[dict] = Depends(get_optional_merchant_auth()),
     service: ServiceService = Depends(get_service_service)
 ):
     """Get a list of all services."""
     try:
         import uuid
-        merchant_uuid = uuid.UUID(current_merchant["id"])
+        # 如果提供了 merchant_id 參數，使用它（公開訪問）
+        if merchant_id:
+            merchant_uuid = uuid.UUID(merchant_id)
+        else:
+            # 否則使用認證的商家 ID（後台管理）
+            if not current_merchant:
+                raise HTTPException(status_code=401, detail="需要認證或提供 merchant_id 參數")
+            merchant_uuid = uuid.UUID(current_merchant["id"])
+        
         services = service.get_all_services(merchant_uuid)
         return services
     except Exception as e:
