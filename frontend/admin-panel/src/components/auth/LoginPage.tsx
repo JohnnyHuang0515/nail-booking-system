@@ -29,6 +29,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
     }
 
     try {
+      console.log('發送登入請求:', { account, password: '***' });
       const response = await fetch('/api/v1/merchant-auth/login', {
         method: 'POST',
         headers: {
@@ -40,17 +41,30 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
         }),
       });
 
+      console.log('回應狀態:', response.status, response.statusText);
+      console.log('回應標頭:', Object.fromEntries(response.headers.entries()));
+
       if (response.ok) {
         const data = await response.json();
+        console.log('登入成功:', data);
         localStorage.setItem('merchant_token', data.access_token);
         localStorage.setItem('merchant_data', JSON.stringify(data.merchant));
         onLoginSuccess(data.merchant);
       } else {
-        const errorData = await response.json();
-        setError(errorData.detail || '登入失敗');
+        console.error('登入失敗，狀態碼:', response.status);
+        try {
+          const errorData = await response.json();
+          console.error('錯誤詳情:', errorData);
+          setError(errorData.detail || `登入失敗 (${response.status})`);
+        } catch (parseError) {
+          console.error('無法解析錯誤回應:', parseError);
+          setError(`登入失敗 (${response.status})`);
+        }
       }
     } catch (err) {
-      setError('網路錯誤，請稍後再試');
+      console.error('網路錯誤:', err);
+      const errorMessage = err instanceof Error ? err.message : '未知錯誤';
+      setError(`網路錯誤: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
