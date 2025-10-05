@@ -17,6 +17,7 @@ export default function App() {
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [selectedService, setSelectedService] = useState<any>(null);
   const [customerInfo, setCustomerInfo] = useState<any>(null);
+  const [bookingResult, setBookingResult] = useState<any>(null);
   const [lineUser, setLineUser] = useState<any>(null);
   const [merchantContext, setMerchantContext] = useState<any>(null);
   const [isLiffReady, setIsLiffReady] = useState(false);
@@ -36,7 +37,7 @@ export default function App() {
           console.log('商家上下文已設定:', merchantContext);
         } else {
           // 如果沒有商家上下文，使用正確的商家 ID
-          const defaultMerchantId = '1e2fae99-150b-44ec-943d-f7be6ab9473a';
+          const defaultMerchantId = '930d5cde-2e01-456a-915c-92c234b613bc';
           customerApiService.setMerchantId(defaultMerchantId);
           console.log('使用預設商家 ID:', defaultMerchantId);
         }
@@ -51,7 +52,7 @@ export default function App() {
       } catch (error) {
         console.error('LIFF 初始化失敗:', error);
         // 即使失敗也要設定預設商家 ID
-        const defaultMerchantId = '1e2fae99-150b-44ec-943d-f7be6ab9473a';
+        const defaultMerchantId = '930d5cde-2e01-456a-915c-92c234b613bc';
         customerApiService.setMerchantId(defaultMerchantId);
         setIsLiffReady(true);
       }
@@ -83,12 +84,19 @@ export default function App() {
     setCurrentStep('loading');
     
     try {
+      // 調試資訊
+      console.log('預約資料檢查:');
+      console.log('- selectedService:', selectedService);
+      console.log('- selectedDate:', selectedDate);
+      console.log('- selectedTime:', selectedTime);
+      console.log('- customerInfo:', info);
+      
       // 提交預約到後端API
       const bookingData = {
         customer_name: info.name,
         customer_phone: info.phone,
         customer_email: info.email,
-        service_id: selectedService.id,
+        service_id: selectedService?.id,
         appointment_date: selectedDate,
         appointment_time: selectedTime,
         notes: info.notes,
@@ -100,6 +108,7 @@ export default function App() {
 
       const result = await customerApiService.submitBooking(bookingData);
       console.log('預約成功:', result);
+      setBookingResult(result);
       setCurrentStep('success');
     } catch (error) {
       console.error('預約失敗:', error);
@@ -113,6 +122,7 @@ export default function App() {
     setSelectedTime('');
     setSelectedService(null);
     setCustomerInfo(null);
+    setBookingResult(null);
   };
 
   const handleError = () => {
@@ -158,6 +168,7 @@ export default function App() {
             selectedTime={selectedTime}
             selectedService={selectedService}
             customerInfo={customerInfo}
+            bookingResult={bookingResult}
             onNewBooking={handleNewBooking}
           />
         );

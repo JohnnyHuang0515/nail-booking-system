@@ -27,7 +27,7 @@ if ! command -v docker &> /dev/null; then
 fi
 
 # 設置環境變數
-export DATABASE_URL="postgresql://user:password@localhost/nail_booking_db"
+export DATABASE_URL="postgresql://nailuser:password@localhost:5433/nail_booking_db"
 
 # 啟動 PostgreSQL 資料庫
 echo "🗄️ 啟動 PostgreSQL 資料庫..."
@@ -36,9 +36,9 @@ if ! docker ps | grep -q "nail-booking-postgres"; then
     docker run -d \
         --name nail-booking-postgres \
         -e POSTGRES_DB=nail_booking_db \
-        -e POSTGRES_USER=user \
+        -e POSTGRES_USER=nailuser \
         -e POSTGRES_PASSWORD=password \
-        -p 5432:5432 \
+        -p 5433:5432 \
         postgres:13
     echo "⏳ 等待資料庫啟動..."
     sleep 10
@@ -128,9 +128,9 @@ echo "   後端 API:     http://localhost:8000"
 echo "   API 文檔:     http://localhost:8000/docs"
 echo ""
 echo "🗄️ 資料庫資訊："
-echo "   PostgreSQL:   localhost:5432"
+echo "   PostgreSQL:   localhost:5433"
 echo "   資料庫名:     nail_booking_db"
-echo "   使用者:       user"
+echo "   使用者:       nailuser"
 echo ""
 echo "按 Ctrl+C 停止所有服務"
 

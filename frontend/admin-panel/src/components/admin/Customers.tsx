@@ -6,7 +6,7 @@ import { Plus, Search, Phone, Mail, Calendar, Edit, Trash2, User, Loader2 } from
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '../ui/dialog';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
-import apiService from '../../services/api';
+import adminApiService from '../../services/api';
 
 interface Customer {
   id: string;
@@ -38,7 +38,7 @@ export default function Customers() {
       setError(null);
 
       // 從預約資料中提取顧客信息
-      const appointmentsData = await apiService.getAppointments() as any[];
+      const appointmentsData = await adminApiService.getAppointments() as any[];
       
       // 從預約中提取唯一的顧客資料
       const customerMap = new Map();

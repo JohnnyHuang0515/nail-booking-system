@@ -56,7 +56,7 @@ class CustomerApiService {
       }
       
       // 如果都沒有，使用預設的商家 ID
-      const defaultMerchantId = '1e2fae99-150b-44ec-943d-f7be6ab9473a';
+      const defaultMerchantId = '930d5cde-2e01-456a-915c-92c234b613bc';
       this.merchantId = defaultMerchantId;
       console.log('使用預設商家 ID:', defaultMerchantId);
       return defaultMerchantId;

@@ -32,9 +32,9 @@ class LiffService {
       if (typeof window !== 'undefined' && (window as any).liff) {
         const liff = (window as any).liff;
         
-        // 先嘗試從 URL 參數獲取 merchant_id，如果沒有則使用測試 ID
+        // 先嘗試從 URL 參數獲取 merchant_id，如果沒有則使用正確的商家 ID
         const urlParams = new URLSearchParams(window.location.search);
-        const merchantId = urlParams.get('merchant_id') || '1e2fae99-150b-44ec-943d-f7be6ab9473a';
+        const merchantId = urlParams.get('merchant_id') || '930d5cde-2e01-456a-915c-92c234b613bc';
         
         // 獲取商家上下文
         await this.loadMerchantContext(merchantId);
@@ -63,7 +63,7 @@ class LiffService {
       } else {
         // 非 LIFF 環境，仍然嘗試獲取商家上下文
         const urlParams = new URLSearchParams(window.location.search);
-        const merchantId = urlParams.get('merchant_id') || '1e2fae99-150b-44ec-943d-f7be6ab9473a';
+        const merchantId = urlParams.get('merchant_id') || '930d5cde-2e01-456a-915c-92c234b613bc';
         await this.loadMerchantContext(merchantId);
         
         console.log('非 LIFF 環境');

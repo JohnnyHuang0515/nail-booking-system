@@ -54,14 +54,21 @@ class SQLMerchantRepository:
     
     def create(self, name: str, line_channel_id: str, line_channel_secret: str, 
                line_channel_access_token: str, timezone: str = 'Asia/Taipei', 
-               liff_id: str = None) -> Merchant:
+               liff_id: str = None, account: str = None, password_hash: str = None) -> Merchant:
         """創建新商家"""
         # 加密敏感資料
         encrypted_secret = token_encryption_manager.encrypt_access_token(line_channel_secret)
         encrypted_token = token_encryption_manager.encrypt_access_token(line_channel_access_token)
         
+        # 生成商家代碼
+        import uuid
+        merchant_code = f"MC{uuid.uuid4().hex[:8].upper()}"
+        
         merchant = Merchant(
             name=name,
+            account=account,
+            password_hash=password_hash,
+            merchant_code=merchant_code,
             line_channel_id=line_channel_id,
             line_channel_secret=encrypted_secret,
             line_channel_access_token=encrypted_token,

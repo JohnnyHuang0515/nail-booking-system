@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Switch } from '../ui/switch';
-import apiService from '../../services/api';
+import adminApiService from '../../services/api';
 
 interface Service {
   id: string;
@@ -36,7 +36,7 @@ export default function Services() {
       setLoading(true);
       setError(null);
 
-      const servicesData = await apiService.getServices() as Service[];
+      const servicesData = await adminApiService.getServices() as Service[];
       setServices(servicesData);
     } catch (err) {
       console.error('載入服務資料失敗:', err);
@@ -48,7 +48,7 @@ export default function Services() {
 
   const handleCreateService = async (serviceData: any) => {
     try {
-      await apiService.createService(serviceData);
+      await adminApiService.createService(serviceData);
       
       setIsAddDialogOpen(false);
       loadServices();
@@ -60,7 +60,7 @@ export default function Services() {
 
   const handleUpdateService = async (serviceId: string, serviceData: Partial<Service>) => {
     try {
-      await apiService.updateService(serviceId, serviceData);
+      await adminApiService.updateService(serviceId, serviceData);
       loadServices();
     } catch (err) {
       console.error('更新服務失敗:', err);
@@ -74,7 +74,7 @@ export default function Services() {
     }
     
     try {
-      await apiService.deleteService(serviceId);
+      await adminApiService.deleteService(serviceId);
       loadServices();
     } catch (err) {
       console.error('刪除服務失敗:', err);

@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Textarea } from '../ui/textarea';
-import apiService from '../../services/api';
+import adminApiService from '../../services/api';
 
 interface Appointment {
   id: string;
@@ -56,7 +56,7 @@ export default function Appointments() {
       setLoading(true);
       setError(null);
 
-      const appointmentsData = await apiService.getAppointments() as any[];
+      const appointmentsData = await adminApiService.getAppointments() as any[];
       
       // 轉換資料格式以匹配前端介面
       const formattedAppointments = appointmentsData.map(apt => ({
@@ -84,7 +84,7 @@ export default function Appointments() {
 
   const loadServices = async () => {
     try {
-      const servicesData = await apiService.getServices() as any[];
+      const servicesData = await adminApiService.getServices() as any[];
       setServices(servicesData || []);
     } catch (err) {
       console.error('載入服務資料失敗:', err);
@@ -105,7 +105,7 @@ export default function Appointments() {
         notes: formData.notes || ''
       };
 
-      await apiService.createAppointment(appointmentData);
+      await adminApiService.createAppointment(appointmentData);
       await loadAppointments(); // 重新載入列表
       setIsAddDialogOpen(false);
       setNotification({ type: 'success', message: '預約新增成功！' });
@@ -135,7 +135,7 @@ export default function Appointments() {
         status: formData.status
       };
 
-      await apiService.updateAppointment(editingAppointment.id, appointmentData);
+      await adminApiService.updateAppointment(editingAppointment.id, appointmentData);
       await loadAppointments(); // 重新載入列表
       setIsEditDialogOpen(false);
       setEditingAppointment(null);
@@ -156,7 +156,7 @@ export default function Appointments() {
 
     try {
       setSubmitting(true);
-      await apiService.deleteAppointment(appointmentId);
+      await adminApiService.deleteAppointment(appointmentId);
       await loadAppointments(); // 重新載入列表
       setNotification({ type: 'success', message: '預約刪除成功！' });
     } catch (err) {
@@ -172,7 +172,7 @@ export default function Appointments() {
     try {
       setSubmitting(true);
       const appointmentData = { status: newStatus };
-      await apiService.updateAppointment(appointmentId, appointmentData);
+      await adminApiService.updateAppointment(appointmentId, appointmentData);
       await loadAppointments(); // 重新載入列表
       setNotification({ type: 'success', message: '狀態更新成功！' });
     } catch (err) {

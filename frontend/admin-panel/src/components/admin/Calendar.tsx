@@ -1,25 +1,69 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Loader2 } from 'lucide-react';
+import adminApiService from '../../services/api';
+
+interface CalendarAppointment {
+  id: string;
+  time: string;
+  service: string;
+  customer: string;
+  status: string;
+  customer_phone?: string;
+  notes?: string;
+}
 
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
-  
-  const appointments: Record<string, Array<{ time: string; service: string; customer: string }>> = {
-    '2024-01-15': [
-      { time: '09:00', service: '基礎保養', customer: '張小姐' },
-      { time: '14:00', service: '光療指甲', customer: '李小姐' },
-    ],
-    '2024-01-16': [
-      { time: '10:30', service: '法式指甲', customer: '王小姐' },
-    ],
-    '2024-01-18': [
-      { time: '09:00', service: '手部護理', customer: '陳小姐' },
-      { time: '11:00', service: '光療指甲', customer: '林小姐' },
-      { time: '15:30', service: '基礎保養', customer: '黃小姐' },
-    ],
+  const [appointments, setAppointments] = useState<Record<string, CalendarAppointment[]>>({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // 載入預約數據
+  const loadAppointments = async (date: Date) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      
+      // 計算月份的第一天和最後一天
+      const startDate = new Date(year, month, 1);
+      const endDate = new Date(year, month + 1, 0);
+      
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
+      const appointmentsData = await adminApiService.getCalendarAppointments(startDateStr, endDateStr);
+      
+      // 將預約按日期分組
+      const groupedAppointments: Record<string, CalendarAppointment[]> = {};
+      appointmentsData.forEach(apt => {
+        const dateKey = apt.appointment_date || new Date().toISOString().split('T')[0];
+        if (!groupedAppointments[dateKey]) {
+          groupedAppointments[dateKey] = [];
+        }
+        groupedAppointments[dateKey].push(apt);
+      });
+      
+      console.log('載入的預約數據:', appointmentsData);
+      console.log('分組後的預約:', groupedAppointments);
+      
+      setAppointments(groupedAppointments);
+    } catch (err) {
+      console.error('載入預約數據失敗:', err);
+      setError('載入預約數據失敗，請稍後再試');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // 當月份改變時重新載入數據
+  useEffect(() => {
+    loadAppointments(currentDate);
+  }, [currentDate]);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -62,12 +106,62 @@ export default function Calendar() {
     });
   };
 
+  const refreshAppointments = () => {
+    loadAppointments(currentDate);
+  };
+
   const monthNames = [
     '一月', '二月', '三月', '四月', '五月', '六月',
     '七月', '八月', '九月', '十月', '十一月', '十二月'
   ];
 
   const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-semibold text-foreground">行事曆管理</h1>
+          <Button className="bg-primary hover:bg-primary/90" disabled>
+            <Plus className="h-4 w-4 mr-2" />
+            新增預約
+          </Button>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="ml-2">載入預約數據中...</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-semibold text-foreground">行事曆管理</h1>
+          <Button className="bg-primary hover:bg-primary/90" onClick={refreshAppointments}>
+            <Plus className="h-4 w-4 mr-2" />
+            新增預約
+          </Button>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <div className="text-red-500 mb-4">{error}</div>
+              <Button onClick={refreshAppointments} variant="outline">
+                重新載入
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -129,11 +223,15 @@ export default function Calendar() {
                     {day}
                   </div>
                   <div className="space-y-1">
-                    {dayAppointments.slice(0, 2).map((appointment: { time: string; service: string; customer: string }, idx: number) => (
+                    {dayAppointments.slice(0, 2).map((appointment: CalendarAppointment, idx: number) => (
                       <div 
                         key={`appointment-${day}-${idx}-${appointment.time}-${appointment.customer}`} 
-                        className="text-xs p-1 bg-primary/20 text-primary rounded truncate"
-                        title={`${appointment.time} ${appointment.customer} - ${appointment.service}`}
+                        className="text-xs p-1 bg-primary/20 text-primary rounded truncate cursor-pointer hover:bg-primary/30"
+                        title={`${appointment.time} ${appointment.customer} - ${appointment.service} (${appointment.status})`}
+                        onClick={() => {
+                          // TODO: 顯示預約詳情
+                          console.log('預約詳情:', appointment);
+                        }}
                       >
                         {appointment.time} {appointment.customer}
                       </div>
