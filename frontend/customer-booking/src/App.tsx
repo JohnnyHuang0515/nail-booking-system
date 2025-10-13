@@ -17,6 +17,7 @@ export default function App() {
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [selectedService, setSelectedService] = useState<any>(null);
   const [customerInfo, setCustomerInfo] = useState<any>(null);
+  const [bookingResult, setBookingResult] = useState<any>(null);
   const [lineUser, setLineUser] = useState<any>(null);
   const [merchantContext, setMerchantContext] = useState<any>(null);
   const [isLiffReady, setIsLiffReady] = useState(false);
@@ -83,12 +84,19 @@ export default function App() {
     setCurrentStep('loading');
     
     try {
+      // 調試資訊
+      console.log('預約資料檢查:');
+      console.log('- selectedService:', selectedService);
+      console.log('- selectedDate:', selectedDate);
+      console.log('- selectedTime:', selectedTime);
+      console.log('- customerInfo:', info);
+      
       // 提交預約到後端API
       const bookingData = {
         customer_name: info.name,
         customer_phone: info.phone,
         customer_email: info.email,
-        service_id: selectedService.id,
+        service_id: selectedService?.id,
         appointment_date: selectedDate,
         appointment_time: selectedTime,
         notes: info.notes,
@@ -100,6 +108,7 @@ export default function App() {
 
       const result = await customerApiService.submitBooking(bookingData);
       console.log('預約成功:', result);
+      setBookingResult(result);
       setCurrentStep('success');
     } catch (error) {
       console.error('預約失敗:', error);
@@ -113,6 +122,7 @@ export default function App() {
     setSelectedTime('');
     setSelectedService(null);
     setCustomerInfo(null);
+    setBookingResult(null);
   };
 
   const handleError = () => {
@@ -158,6 +168,7 @@ export default function App() {
             selectedTime={selectedTime}
             selectedService={selectedService}
             customerInfo={customerInfo}
+            bookingResult={bookingResult}
             onNewBooking={handleNewBooking}
           />
         );

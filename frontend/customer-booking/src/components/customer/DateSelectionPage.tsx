@@ -11,9 +11,10 @@ export default function DateSelectionPage({ onNext }: DateSelectionPageProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [holidays, setHolidays] = useState<string[]>([]);
+  const [fullyBookedDates, setFullyBookedDates] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 載入休假日資料
+  // 載入休假日資料和已預約日期
   useEffect(() => {
     const loadHolidays = async () => {
       try {
@@ -36,6 +37,47 @@ export default function DateSelectionPage({ onNext }: DateSelectionPageProps) {
 
     loadHolidays();
   }, []);
+
+  // 載入已完全預約的日期
+  useEffect(() => {
+    const loadFullyBookedDates = async () => {
+      const today = new Date();
+      const maxDate = new Date(today);
+      maxDate.setDate(today.getDate() + 30);
+      
+      const bookedDates: string[] = [];
+      
+      // 檢查未來30天內的每一天
+      for (let d = new Date(today); d <= maxDate; d.setDate(d.getDate() + 1)) {
+        const dateString = d.toISOString().split('T')[0];
+        const isBooked = await checkDateAvailability(dateString);
+        if (isBooked) {
+          bookedDates.push(dateString);
+        }
+      }
+      
+      setFullyBookedDates(bookedDates);
+    };
+
+    loadFullyBookedDates();
+  }, [currentDate]);
+
+  // 檢查日期是否完全預約滿
+  const checkDateAvailability = async (dateString: string) => {
+    try {
+      const merchantId = '930d5cde-2e01-456a-915c-92c234b613bc';
+      const response = await fetch(`http://localhost:8000/api/v1/slots/${dateString}?merchant_id=${merchantId}`);
+      if (response.ok) {
+        const slots = await response.json();
+        // 如果所有時段都不可用，則該日期完全預約滿
+        const allBooked = slots.every((slot: any) => !slot.available);
+        return allBooked;
+      }
+    } catch (err) {
+      console.error('檢查日期可用性錯誤:', err);
+    }
+    return false;
+  };
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -85,7 +127,16 @@ export default function DateSelectionPage({ onNext }: DateSelectionPageProps) {
     const dateKey = formatDateKey(day);
     if (holidays.includes(dateKey)) return false;
     
+    // 檢查是否為完全預約的日期
+    if (fullyBookedDates.includes(dateKey)) return false;
+    
     return true;
+  };
+
+  const isDateFullyBooked = (day: number) => {
+    if (!day) return false;
+    const dateKey = formatDateKey(day);
+    return fullyBookedDates.includes(dateKey);
   };
 
   const formatDateKey = (day: number) => {
@@ -151,6 +202,24 @@ export default function DateSelectionPage({ onNext }: DateSelectionPageProps) {
           {loading && (
             <p className="text-sm text-muted-foreground mt-1">載入休假日資料中...</p>
           )}
+          
+          {/* 圖例 */}
+          <div className="flex justify-center space-x-4 text-xs text-muted-foreground mt-2">
+            <div className="flex items-center space-x-1">
+              <div className="w-3 h-3 bg-disabled border border-disabled rounded relative">
+                <div className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+              </div>
+              <span>已預約滿</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-3 h-3 bg-muted border border-border rounded"></div>
+              <span>可預約</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-3 h-3 bg-disabled border border-disabled rounded"></div>
+              <span>不可預約</span>
+            </div>
+          </div>
         </div>
 
         {/* Calendar */}
@@ -189,6 +258,7 @@ export default function DateSelectionPage({ onNext }: DateSelectionPageProps) {
                 
                 const dateKey = formatDateKey(day);
                 const isAvailable = isDateAvailable(day);
+                const isFullyBooked = isDateFullyBooked(day);
                 const isSelected = selectedDate === dateKey;
                 const today = new Date();
                 const isToday = 
@@ -202,7 +272,7 @@ export default function DateSelectionPage({ onNext }: DateSelectionPageProps) {
                     onClick={() => handleDateSelect(day)}
                     disabled={!isAvailable}
                     className={`
-                      p-2 h-12 rounded-lg text-sm font-medium transition-colors
+                      p-2 h-12 rounded-lg text-sm font-medium transition-colors relative
                       ${isSelected 
                         ? 'bg-primary text-primary-foreground' 
                         : isAvailable 
@@ -213,6 +283,9 @@ export default function DateSelectionPage({ onNext }: DateSelectionPageProps) {
                     `}
                   >
                     {day}
+                    {isFullyBooked && (
+                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+                    )}
                   </button>
                 );
               })}

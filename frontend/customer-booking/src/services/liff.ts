@@ -32,7 +32,7 @@ class LiffService {
       if (typeof window !== 'undefined' && (window as any).liff) {
         const liff = (window as any).liff;
         
-        // 先嘗試從 URL 參數獲取 merchant_id，如果沒有則使用測試 ID
+        // 先嘗試從 URL 參數獲取 merchant_id，如果沒有則使用正確的商家 ID
         const urlParams = new URLSearchParams(window.location.search);
         const merchantId = urlParams.get('merchant_id') || '00000000-0000-0000-0000-000000000001';
         

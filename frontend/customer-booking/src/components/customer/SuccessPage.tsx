@@ -10,6 +10,7 @@ interface SuccessPageProps {
   selectedTime: string;
   selectedService: any;
   customerInfo: any;
+  bookingResult?: any; // 從後端 API 返回的預約結果
   onNewBooking: () => void;
 }
 
@@ -18,6 +19,7 @@ export default function SuccessPage({
   selectedTime, 
   selectedService, 
   customerInfo,
+  bookingResult,
   onNewBooking 
 }: SuccessPageProps) {
   const formatDate = (dateString: string) => {
@@ -30,15 +32,31 @@ export default function SuccessPage({
   };
 
   const calculateEndTime = (startTime: string, duration: number) => {
-    const [hours, minutes] = startTime.split(':').map(Number);
+    // 處理時間格式，支援 HH:MM 和 HH:MM:SS
+    if (!startTime || !duration) return 'N/A';
+    
+    const timeParts = startTime.split(':');
+    const hours = parseInt(timeParts[0], 10);
+    const minutes = parseInt(timeParts[1], 10);
+    
+    if (isNaN(hours) || isNaN(minutes) || isNaN(duration)) return 'N/A';
+    
     const totalMinutes = hours * 60 + minutes + duration;
     const endHours = Math.floor(totalMinutes / 60);
     const endMinutes = totalMinutes % 60;
     return `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
   };
 
-  // 預約編號應該從後端 API 回應中取得
-  const bookingRef = 'N/A';
+  // 預約編號從後端 API 回應中取得
+  const bookingRef = bookingResult?.id || 'N/A';
+  
+  // 調試資訊
+  console.log('SuccessPage 資料檢查:');
+  console.log('- selectedService:', selectedService);
+  console.log('- selectedDate:', selectedDate);
+  console.log('- selectedTime:', selectedTime);
+  console.log('- customerInfo:', customerInfo);
+  console.log('- bookingResult:', bookingResult);
 
   // 自動關閉 LIFF 視窗（3秒後）
   useEffect(() => {
@@ -81,7 +99,7 @@ export default function SuccessPage({
               <div>
                 <div className="font-medium text-green-800">{formatDate(selectedDate)}</div>
                 <div className="text-sm text-green-600">
-                  {selectedTime} - {calculateEndTime(selectedTime, selectedService.duration)}
+                  {selectedTime || 'N/A'} - {calculateEndTime(selectedTime, selectedService?.duration_minutes)}
                 </div>
               </div>
             </div>
@@ -91,21 +109,21 @@ export default function SuccessPage({
               <Sparkles className="h-5 w-5 text-blue-600 mt-0.5" />
               <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-1">
-                  <span className="font-medium text-blue-800">{selectedService.name}</span>
+                  <span className="font-medium text-blue-800">{selectedService?.name || 'N/A'}</span>
                   <Badge className="bg-blue-100 text-blue-700">
-                    {selectedService.category}
+                    美甲服務
                   </Badge>
                 </div>
                 <div className="text-sm text-blue-600 mb-2">
-                  {selectedService.description}
+                  專業美甲服務
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center text-blue-600">
                     <Clock className="h-3 w-3 mr-1" />
-                    {selectedService.duration} 分鐘
+                    {selectedService?.duration_minutes || 'N/A'} 分鐘
                   </div>
                   <div className="font-medium text-blue-800">
-                    NT${selectedService.price}
+                    NT${selectedService?.price || 'N/A'}
                   </div>
                 </div>
               </div>
@@ -115,8 +133,8 @@ export default function SuccessPage({
             <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
               <User className="h-5 w-5 text-purple-600" />
               <div>
-                <div className="font-medium text-purple-800">{customerInfo.name}</div>
-                <div className="text-sm text-purple-600">{customerInfo.phone}</div>
+                <div className="font-medium text-purple-800">{customerInfo?.name || 'N/A'}</div>
+                <div className="text-sm text-purple-600">{customerInfo?.phone || 'N/A'}</div>
               </div>
             </div>
           </CardContent>

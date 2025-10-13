@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Calendar, Clock, Users, Sparkles, TrendingUp, Plus, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
-import apiService from '../../services/api';
+import adminApiService from '../../services/api';
 
 interface DashboardProps {
   onPageChange: (page: string) => void;
@@ -54,8 +54,8 @@ export default function Dashboard({ onPageChange }: DashboardProps) {
       const thirtyDaysLaterStr = thirtyDaysLater.toISOString().split('T')[0];
       
       const [appointmentsData, servicesData] = await Promise.all([
-        apiService.getAppointments(thirtyDaysAgoStr, thirtyDaysLaterStr),
-        apiService.getServices()
+        adminApiService.getAppointments(thirtyDaysAgoStr, thirtyDaysLaterStr),
+        adminApiService.getServices()
       ]) as [any[], any[]];
 
       // 處理統計資料
