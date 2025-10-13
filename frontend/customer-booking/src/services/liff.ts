@@ -34,7 +34,7 @@ class LiffService {
         
         // 先嘗試從 URL 參數獲取 merchant_id，如果沒有則使用測試 ID
         const urlParams = new URLSearchParams(window.location.search);
-        const merchantId = urlParams.get('merchant_id') || '1e2fae99-150b-44ec-943d-f7be6ab9473a';
+        const merchantId = urlParams.get('merchant_id') || '00000000-0000-0000-0000-000000000001';
         
         // 獲取商家上下文
         await this.loadMerchantContext(merchantId);
@@ -63,7 +63,7 @@ class LiffService {
       } else {
         // 非 LIFF 環境，仍然嘗試獲取商家上下文
         const urlParams = new URLSearchParams(window.location.search);
-        const merchantId = urlParams.get('merchant_id') || '1e2fae99-150b-44ec-943d-f7be6ab9473a';
+        const merchantId = urlParams.get('merchant_id') || '00000000-0000-0000-0000-000000000001';
         await this.loadMerchantContext(merchantId);
         
         console.log('非 LIFF 環境');

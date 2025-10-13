@@ -23,7 +23,16 @@ def get_engine():
     database_url = get_database_url()
     if database_url == "postgresql://user:password@localhost/nail_booking_db":
         print("WARNING: Using default DATABASE_URL. Please set the environment variable for your database.")
-    return create_engine(database_url)
+    
+    # 優化連接池設定以降低 CPU 使用
+    return create_engine(
+        database_url,
+        pool_size=5,           # 連接池大小（預設 5）
+        max_overflow=10,       # 最大溢出連接數（預設 10）
+        pool_pre_ping=True,    # 使用前檢查連接是否有效
+        pool_recycle=3600,     # 1小時後回收連接
+        echo=False             # 關閉 SQL 日誌（減少 I/O）
+    )
 
 def get_session_local():
     """Get session maker, creating it dynamically."""

@@ -48,23 +48,37 @@ export default function Services() {
 
   const handleCreateService = async (serviceData: any) => {
     try {
-      await apiService.createService(serviceData);
+      // 加入 merchant_id（從資料庫中獲取的實際商家 ID）
+      const merchantId = '00000000-0000-0000-0000-000000000001'; // 測試商家 ID
+      const payload = {
+        name: serviceData.name,
+        price: serviceData.price,
+        duration_minutes: serviceData.duration_minutes,
+        merchant_id: merchantId,
+        is_active: serviceData.is_active
+      };
+      
+      await apiService.createService(payload);
       
       setIsAddDialogOpen(false);
+      setError(null); // 清除之前的錯誤
       loadServices();
-    } catch (err) {
+    } catch (err: any) {
       console.error('建立服務失敗:', err);
-      setError('建立服務失敗，請稍後再試');
+      const errorMessage = err.message || '建立服務失敗，請稍後再試';
+      setError(errorMessage);
     }
   };
 
   const handleUpdateService = async (serviceId: string, serviceData: Partial<Service>) => {
     try {
       await apiService.updateService(serviceId, serviceData);
+      setError(null); // 清除之前的錯誤
       loadServices();
-    } catch (err) {
+    } catch (err: any) {
       console.error('更新服務失敗:', err);
-      setError('更新服務失敗，請稍後再試');
+      const errorMessage = err.message || '更新服務失敗，請稍後再試';
+      setError(errorMessage);
     }
   };
 
@@ -75,10 +89,12 @@ export default function Services() {
     
     try {
       await apiService.deleteService(serviceId);
+      setError(null); // 清除之前的錯誤
       loadServices();
-    } catch (err) {
+    } catch (err: any) {
       console.error('刪除服務失敗:', err);
-      setError('刪除服務失敗，請稍後再試');
+      const errorMessage = err.message || '刪除服務失敗，請稍後再試';
+      setError(errorMessage);
     }
   };
 

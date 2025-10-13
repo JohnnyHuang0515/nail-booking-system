@@ -35,7 +35,19 @@ class ApiService {
           localStorage.removeItem('merchant_data');
           window.location.reload();
         }
-        throw new Error(`HTTP error! status: ${response.status}`);
+        
+        // 嘗試從響應中取得錯誤詳情
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.detail) {
+            errorMessage = errorData.detail;
+          }
+        } catch (e) {
+          // 無法解析 JSON 錯誤訊息，使用預設訊息
+        }
+        
+        throw new Error(errorMessage);
       }
       
       // 處理空響應（如 204 No Content）
@@ -73,7 +85,7 @@ class ApiService {
   async getAppointments(startDate?: string, endDate?: string) {
     const today = new Date().toISOString().split('T')[0];
     const defaultEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const merchantId = '1e2fae99-150b-44ec-943d-f7be6ab9473a'; // 測試商家 ID
+    const merchantId = '00000000-0000-0000-0000-000000000001'; // 測試商家 ID
     const params = new URLSearchParams({
       merchant_id: merchantId,
       start_date: startDate || today,
@@ -104,7 +116,7 @@ class ApiService {
 
   // 服務管理 API
   async getServices() {
-    const merchantId = '1e2fae99-150b-44ec-943d-f7be6ab9473a'; // 測試商家 ID
+    const merchantId = '00000000-0000-0000-0000-000000000001'; // 測試商家 ID
     return this.request(`/api/v1/services?merchant_id=${merchantId}`);
   }
 

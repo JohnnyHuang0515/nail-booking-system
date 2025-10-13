@@ -86,9 +86,18 @@ def create_service(
             merchant_id=merchant_uuid,
             is_active=service_data.is_active,
         )
+    except ValueError as e:
+        print(f"Create service validation error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, 
+            detail=f"驗證錯誤: {str(e)}"
+        )
     except Exception as e:
         print(f"Create service error: {e}")
-        raise HTTPException(status_code=400, detail=f"Failed to create service: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail=f"建立服務失敗: {str(e)}"
+        )
 
 
 @router.put("/services/{service_id}", response_model=Service)
