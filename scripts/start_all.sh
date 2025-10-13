@@ -1,13 +1,14 @@
 #!/bin/bash
 
-# 美甲預約系統完整啟動腳本
+# 美甲預約系統完整啟動腳本 (uv 版本)
 
-echo "🚀 啟動美甲預約系統 - 完整服務"
-echo "================================"
+echo "🚀 啟動美甲預約系統 - 完整服務 (uv 版本)"
+echo "=========================================="
 
 # 檢查必要工具
-if ! command -v python3 &> /dev/null; then
-    echo "❌ Python3 未安裝"
+if ! command -v uv &> /dev/null; then
+    echo "❌ uv 未安裝，請先安裝 uv"
+    echo "安裝指令: curl -LsSf https://astral.sh/uv/install.sh | sh"
     exit 1
 fi
 
@@ -25,6 +26,10 @@ if ! command -v docker &> /dev/null; then
     echo "❌ Docker 未安裝"
     exit 1
 fi
+
+# 同步依賴
+echo "📦 同步專案依賴..."
+uv sync
 
 # 設置環境變數
 export DATABASE_URL="postgresql://nailuser:password@localhost:5433/nail_booking_db"
@@ -47,7 +52,7 @@ else
 fi
 
 echo "📋 檢查資料庫連接..."
-python3 -c "
+uv run python -c "
 import psycopg2
 import time
 max_retries = 5
@@ -84,7 +89,7 @@ echo "✅ 所有端口可用"
 
 # 啟動後端
 echo "🔧 啟動後端 API 服務..."
-python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 &
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 &
 BACKEND_PID=$!
 
 # 等待後端啟動
