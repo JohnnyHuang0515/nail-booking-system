@@ -3,17 +3,17 @@ Booking Context - Domain Layer - Aggregate Root
 Booking 聚合：預約的生命週期管理
 """
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 from uuid import uuid4
 
 from .value_objects import Money, Duration, TimeSlot
 from .exceptions import (
-    InvalidStatusTransitionError,
     BookingAlreadyCancelledError,
     BookingAlreadyCompletedError
 )
+from shared.exceptions import InvalidStatusTransitionError
 
 
 class BookingStatus(str, Enum):
@@ -97,7 +97,7 @@ class Booking:
         self.start_at = start_at
         self.items = items
         self.status = status
-        self.created_at = created_at or datetime.now(datetime.timezone.utc)
+        self.created_at = created_at or datetime.now(timezone.utc)
         self.updated_at = updated_at
         self.cancelled_at = cancelled_at
         self.completed_at = completed_at
@@ -167,7 +167,7 @@ class Booking:
                 to_status=BookingStatus.CONFIRMED.value
             )
         self.status = BookingStatus.CONFIRMED
-        self.updated_at = datetime.now(datetime.timezone.utc)
+        self.updated_at = datetime.now(timezone.utc)
     
     def cancel(self, cancelled_by: str, reason: str = ""):
         """取消預約"""
@@ -178,7 +178,7 @@ class Booking:
             raise BookingAlreadyCancelledError(booking_id=self.id)
         
         self.status = BookingStatus.CANCELLED
-        self.cancelled_at = datetime.now(datetime.timezone.utc)
+        self.cancelled_at = datetime.now(timezone.utc)
         self.updated_at = self.cancelled_at
     
     def complete(self):
@@ -190,7 +190,7 @@ class Booking:
             )
         
         self.status = BookingStatus.COMPLETED
-        self.completed_at = datetime.now(datetime.timezone.utc)
+        self.completed_at = datetime.now(timezone.utc)
         self.updated_at = self.completed_at
     
     @classmethod
@@ -254,6 +254,6 @@ class BookingLock:
             staff_id=staff_id,
             start_at=start_at,
             end_at=end_at,
-            created_at=datetime.now(datetime.timezone.utc)
+            created_at=datetime.now(timezone.utc)
         )
 
