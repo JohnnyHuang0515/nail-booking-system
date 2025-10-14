@@ -15,16 +15,44 @@ from shared.database import SessionLocal
 from catalog.domain.models import Service, ServiceCategory, Staff, StaffWorkingHours, DayOfWeek, ServiceOption
 from catalog.infrastructure.repositories.sqlalchemy_service_repository import SQLAlchemyServiceRepository
 from catalog.infrastructure.repositories.sqlalchemy_staff_repository import SQLAlchemyStaffRepository
+from merchant.domain.models import Merchant, MerchantStatus
+from merchant.infrastructure.repositories.sqlalchemy_merchant_repository import SQLAlchemyMerchantRepository
 from booking.domain.value_objects import Money, Duration
 
 
-def seed_catalog_data(db: Session):
+def seed_merchant_data(db: Session):
+    """載入 Merchant 測試資料"""
+    
+    merchant_repo = SQLAlchemyMerchantRepository(db)
+    
+    merchant_id = "00000000-0000-0000-0000-000000000001"
+    
+    print("🏪 載入商家資料...")
+    
+    # 建立測試商家
+    merchant = Merchant(
+        id=merchant_id,
+        slug="nail-abc",
+        name="美甲沙龍 ABC",
+        status=MerchantStatus.ACTIVE,
+        timezone="Asia/Taipei",
+        address="台北市大安區復興南路一段123號",
+        phone="02-27001234"
+    )
+    
+    merchant_repo.save(merchant)
+    db.commit()
+    
+    print("✅ 1 個商家已載入")
+    
+    return merchant_id
+
+
+def seed_catalog_data(db: Session, merchant_id: str):
     """載入 Catalog 測試資料"""
     
     service_repo = SQLAlchemyServiceRepository(db)
     staff_repo = SQLAlchemyStaffRepository(db)
-    
-    merchant_id = "00000000-0000-0000-0000-000000000001"  # 測試商家 ID
     
     print("📋 載入服務資料...")
     
@@ -155,7 +183,11 @@ def main():
     
     db = SessionLocal()
     try:
-        seed_catalog_data(db)
+        # 先載入商家
+        merchant_id = seed_merchant_data(db)
+        
+        # 再載入服務與員工
+        seed_catalog_data(db, merchant_id)
     except Exception as e:
         print(f"❌ 載入失敗: {e}")
         db.rollback()

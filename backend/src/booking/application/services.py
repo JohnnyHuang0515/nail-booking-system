@@ -48,14 +48,14 @@ class BookingService:
         self,
         booking_repo: BookingRepository,
         booking_lock_repo: BookingLockRepository,
-        catalog_service: Optional["CatalogService"] = None  # Catalog Context
-        # merchant_service: MerchantService,  # 待實作
+        catalog_service: Optional["CatalogService"] = None,  # Catalog Context
+        merchant_service: Optional["MerchantService"] = None  # Merchant Context
         # billing_service: BillingService  # 待實作
     ):
         self.booking_repo = booking_repo
         self.booking_lock_repo = booking_lock_repo
         self.catalog_service = catalog_service
-        # self.merchant_service = merchant_service
+        self.merchant_service = merchant_service
         # self.billing_service = billing_service
     
     async def create_booking(
@@ -93,10 +93,12 @@ class BookingService:
         """
         
         # === STEP 1: 驗證商家狀態 ===
-        # TODO: 待 Merchant Context 實作後整合
-        # merchant = await self.merchant_service.get_merchant(merchant_id)
-        # if not merchant.is_active:
-        #     raise MerchantInactiveError(merchant_id)
+        if self.merchant_service:
+            # 使用真實的 MerchantService 驗證商家狀態
+            self.merchant_service.validate_merchant_active(merchant_id)
+        else:
+            # Fallback: 跳過商家驗證（向後相容）
+            pass
         
         # === STEP 2: 驗證訂閱狀態 ===
         # TODO: 待 Billing Context 實作後整合

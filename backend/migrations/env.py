@@ -7,6 +7,7 @@ from alembic import context
 from shared.database import Base
 from booking.infrastructure.orm.models import BookingORM, BookingLockORM
 from catalog.infrastructure.orm.models import ServiceORM, ServiceOptionORM, StaffORM, StaffWorkingHoursORM
+from merchant.infrastructure.orm.models import MerchantORM
 
 # Alembic Config object
 config = context.config
