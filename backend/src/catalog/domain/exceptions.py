@@ -47,3 +47,7 @@ class ServiceOptionNotFoundError(DomainException):
             details={"option_id": option_id, "service_id": service_id}
         )
 
+
+# 別名：向後相容
+StaffSkillMismatchError = StaffCannotPerformServiceError
+
