@@ -6,6 +6,7 @@ from alembic import context
 # Import Base for autogenerate
 from shared.database import Base
 from booking.infrastructure.orm.models import BookingORM, BookingLockORM
+from catalog.infrastructure.orm.models import ServiceORM, ServiceOptionORM, StaffORM, StaffWorkingHoursORM
 
 # Alembic Config object
 config = context.config

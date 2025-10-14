@@ -1,0 +1,169 @@
+#!/usr/bin/env python3
+"""
+測試資料載入腳本
+用途：為開發環境載入範例商家、服務、員工資料
+"""
+import sys
+from pathlib import Path
+from datetime import time
+from decimal import Decimal
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from sqlalchemy.orm import Session
+from shared.database import SessionLocal
+from catalog.domain.models import Service, ServiceCategory, Staff, StaffWorkingHours, DayOfWeek, ServiceOption
+from catalog.infrastructure.repositories.sqlalchemy_service_repository import SQLAlchemyServiceRepository
+from catalog.infrastructure.repositories.sqlalchemy_staff_repository import SQLAlchemyStaffRepository
+from booking.domain.value_objects import Money, Duration
+
+
+def seed_catalog_data(db: Session):
+    """載入 Catalog 測試資料"""
+    
+    service_repo = SQLAlchemyServiceRepository(db)
+    staff_repo = SQLAlchemyStaffRepository(db)
+    
+    merchant_id = "00000000-0000-0000-0000-000000000001"  # 測試商家 ID
+    
+    print("📋 載入服務資料...")
+    
+    # === 建立服務 ===
+    
+    # 服務 1: 凝膠指甲 Gel Basic
+    gel_basic = Service(
+        id=1,
+        merchant_id=merchant_id,
+        name="凝膠指甲 Gel Basic",
+        base_price=Money(amount=Decimal("800"), currency="TWD"),
+        base_duration=Duration(minutes=60),
+        category=ServiceCategory.BASIC,
+        description="基礎凝膠指甲服務",
+        is_active=True,
+        allow_stack=True,
+        options=[
+            ServiceOption(
+                id=1,
+                service_id=1,
+                name="法式造型",
+                add_price=Money(amount=Decimal("200")),
+                add_duration=Duration(minutes=15),
+                is_active=True,
+                display_order=1
+            ),
+            ServiceOption(
+                id=2,
+                service_id=1,
+                name="手繪彩繪",
+                add_price=Money(amount=Decimal("300")),
+                add_duration=Duration(minutes=20),
+                is_active=True,
+                display_order=2
+            )
+        ]
+    )
+    
+    # 服務 2: 手部保養
+    hand_care = Service(
+        id=2,
+        merchant_id=merchant_id,
+        name="手部保養 Hand Care",
+        base_price=Money(amount=Decimal("500"), currency="TWD"),
+        base_duration=Duration(minutes=45),
+        category=ServiceCategory.TREATMENT,
+        description="深層手部保養護理",
+        is_active=True,
+        allow_stack=True,
+        options=[]
+    )
+    
+    # 服務 3: 豪華凝膠
+    gel_luxury = Service(
+        id=3,
+        merchant_id=merchant_id,
+        name="豪華凝膠指甲 Gel Luxury",
+        base_price=Money(amount=Decimal("1500"), currency="TWD"),
+        base_duration=Duration(minutes=90),
+        category=ServiceCategory.LUXURY,
+        description="頂級凝膠指甲，含設計",
+        is_active=True,
+        allow_stack=False,
+        options=[]
+    )
+    
+    service_repo.save(gel_basic)
+    service_repo.save(hand_care)
+    service_repo.save(gel_luxury)
+    
+    print("✅ 3 個服務已載入")
+    
+    # === 建立員工 ===
+    
+    print("👤 載入員工資料...")
+    
+    # 員工 1: Amy（全能型）
+    amy = Staff(
+        id=1,
+        merchant_id=merchant_id,
+        name="Amy",
+        email="amy@nail-abc.com",
+        phone="0912345678",
+        skills=[1, 2, 3],  # 可執行所有服務
+        is_active=True,
+        working_hours=[
+            # 週一到週六 10:00-18:00
+            StaffWorkingHours(DayOfWeek.MONDAY, time(10, 0), time(18, 0)),
+            StaffWorkingHours(DayOfWeek.TUESDAY, time(10, 0), time(18, 0)),
+            StaffWorkingHours(DayOfWeek.WEDNESDAY, time(10, 0), time(18, 0)),
+            StaffWorkingHours(DayOfWeek.THURSDAY, time(10, 0), time(18, 0)),
+            StaffWorkingHours(DayOfWeek.FRIDAY, time(10, 0), time(18, 0)),
+            StaffWorkingHours(DayOfWeek.SATURDAY, time(10, 0), time(17, 0)),
+        ]
+    )
+    
+    # 員工 2: Betty（專精基礎服務）
+    betty = Staff(
+        id=2,
+        merchant_id=merchant_id,
+        name="Betty",
+        email="betty@nail-abc.com",
+        phone="0923456789",
+        skills=[1, 2],  # 只能執行基礎服務
+        is_active=True,
+        working_hours=[
+            # 週二到週六 11:00-19:00
+            StaffWorkingHours(DayOfWeek.TUESDAY, time(11, 0), time(19, 0)),
+            StaffWorkingHours(DayOfWeek.WEDNESDAY, time(11, 0), time(19, 0)),
+            StaffWorkingHours(DayOfWeek.THURSDAY, time(11, 0), time(19, 0)),
+            StaffWorkingHours(DayOfWeek.FRIDAY, time(11, 0), time(19, 0)),
+            StaffWorkingHours(DayOfWeek.SATURDAY, time(11, 0), time(18, 0)),
+        ]
+    )
+    
+    staff_repo.save(amy)
+    staff_repo.save(betty)
+    
+    print("✅ 2 個員工已載入")
+    
+    db.commit()
+    print("🎉 測試資料載入完成！")
+
+
+def main():
+    """主函式"""
+    print("🌱 載入測試資料...")
+    
+    db = SessionLocal()
+    try:
+        seed_catalog_data(db)
+    except Exception as e:
+        print(f"❌ 載入失敗: {e}")
+        db.rollback()
+        sys.exit(1)
+    finally:
+        db.close()
+
+
+if __name__ == "__main__":
+    main()
+

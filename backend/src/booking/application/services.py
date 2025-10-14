@@ -47,14 +47,14 @@ class BookingService:
     def __init__(
         self,
         booking_repo: BookingRepository,
-        booking_lock_repo: BookingLockRepository
-        # catalog_service: CatalogService,  # 暫時註解，待 Catalog Context 實作
-        # merchant_service: MerchantService,
-        # billing_service: BillingService
+        booking_lock_repo: BookingLockRepository,
+        catalog_service: Optional["CatalogService"] = None  # Catalog Context
+        # merchant_service: MerchantService,  # 待實作
+        # billing_service: BillingService  # 待實作
     ):
         self.booking_repo = booking_repo
         self.booking_lock_repo = booking_lock_repo
-        # self.catalog_service = catalog_service
+        self.catalog_service = catalog_service
         # self.merchant_service = merchant_service
         # self.billing_service = billing_service
     
@@ -105,9 +105,28 @@ class BookingService:
         #     raise SubscriptionPastDueError(merchant_id)
         
         # === STEP 3: 驗證員工與服務，計算價格時長 ===
-        # TODO: 待 Catalog Context 實作後整合
-        # 暫時使用模擬資料
-        booking_items = self._build_booking_items_mock(items_data)
+        booking_items = []
+        
+        if self.catalog_service:
+            # 使用真實的 CatalogService
+            for item_data in items_data:
+                # 驗證員工可執行此服務
+                await self.catalog_service.validate_staff_can_perform_service(
+                    staff_id=staff_id,
+                    service_id=item_data["service_id"],
+                    merchant_id=merchant_id
+                )
+                
+                # 建構 BookingItem
+                booking_item = await self.catalog_service.build_booking_item(
+                    service_id=item_data["service_id"],
+                    option_ids=item_data.get("option_ids", []),
+                    merchant_id=merchant_id
+                )
+                booking_items.append(booking_item)
+        else:
+            # Fallback: 使用模擬資料（向後相容）
+            booking_items = self._build_booking_items_mock(items_data)
         
         # === STEP 4: 計算總時長，確定 end_at ===
         total_duration = Duration.zero()
@@ -309,10 +328,25 @@ class BookingService:
         Returns:
             [{"start_time": "14:00", "end_time": "15:00", "available": True}, ...]
         """
-        # TODO: 待 Catalog Context 實作後整合員工工時查詢
-        # 暫時使用固定工時 10:00-18:00
-        working_start = datetime.combine(target_date, time(10, 0))
-        working_end = datetime.combine(target_date, time(18, 0))
+        # 取得員工工時
+        if self.catalog_service:
+            staff = await self.catalog_service.get_staff(staff_id, merchant_id)
+            
+            # 取得當天工時
+            day_of_week = target_date.weekday()  # 0=Monday, 6=Sunday
+            from catalog.domain.models import DayOfWeek
+            working_hours = staff.get_working_hours_for_day(DayOfWeek(day_of_week))
+            
+            if not working_hours:
+                # 該天無工作時間
+                return []
+            
+            working_start = datetime.combine(target_date, working_hours.start_time)
+            working_end = datetime.combine(target_date, working_hours.end_time)
+        else:
+            # Fallback: 固定工時 10:00-18:00
+            working_start = datetime.combine(target_date, time(10, 0))
+            working_end = datetime.combine(target_date, time(18, 0))
         
         # 取得當天所有預約
         day_start = datetime.combine(target_date, time(0, 0))
