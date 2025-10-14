@@ -34,6 +34,13 @@ from merchant.application.services import MerchantService
 from merchant.infrastructure.repositories.sqlalchemy_merchant_repository import (
     SQLAlchemyMerchantRepository
 )
+from billing.application.services import BillingService
+from billing.infrastructure.repositories.sqlalchemy_subscription_repository import (
+    SQLAlchemySubscriptionRepository
+)
+from billing.infrastructure.repositories.sqlalchemy_plan_repository import (
+    SQLAlchemyPlanRepository
+)
 from shared.database import get_db
 from shared.exceptions import (
     MerchantInactiveError,
@@ -46,7 +53,7 @@ router = APIRouter(prefix="/liff", tags=["LIFF Booking"])
 
 
 def get_booking_service(db: Session = Depends(get_db)) -> BookingService:
-    """Dependency: 建立 BookingService 實例（含 Catalog + Merchant 整合）"""
+    """Dependency: 建立 BookingService 實例（含 Catalog + Merchant + Billing 整合）"""
     # Booking Repositories
     booking_repo = SQLAlchemyBookingRepository(db)
     booking_lock_repo = SQLAlchemyBookingLockRepository(db)
@@ -58,16 +65,22 @@ def get_booking_service(db: Session = Depends(get_db)) -> BookingService:
     # Merchant Repository
     merchant_repo = SQLAlchemyMerchantRepository(db)
     
+    # Billing Repositories
+    subscription_repo = SQLAlchemySubscriptionRepository(db)
+    plan_repo = SQLAlchemyPlanRepository(db)
+    
     # Application Services
     catalog_service = CatalogService(service_repo, staff_repo)
     merchant_service = MerchantService(merchant_repo)
+    billing_service = BillingService(subscription_repo, plan_repo)
     
-    # BookingService（整合 Catalog + Merchant）
+    # BookingService（整合 Catalog + Merchant + Billing）
     return BookingService(
         booking_repo,
         booking_lock_repo,
         catalog_service,
-        merchant_service
+        merchant_service,
+        billing_service
     )
 
 

@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from datetime import time
 from decimal import Decimal
+from uuid import uuid4
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -17,6 +18,9 @@ from catalog.infrastructure.repositories.sqlalchemy_service_repository import SQ
 from catalog.infrastructure.repositories.sqlalchemy_staff_repository import SQLAlchemyStaffRepository
 from merchant.domain.models import Merchant, MerchantStatus
 from merchant.infrastructure.repositories.sqlalchemy_merchant_repository import SQLAlchemyMerchantRepository
+from billing.domain.models import Plan, PlanTier, Subscription, SubscriptionStatus, PlanFeatures
+from billing.infrastructure.repositories.sqlalchemy_plan_repository import SQLAlchemyPlanRepository
+from billing.infrastructure.repositories.sqlalchemy_subscription_repository import SQLAlchemySubscriptionRepository
 from booking.domain.value_objects import Money, Duration
 
 
@@ -177,6 +181,73 @@ def seed_catalog_data(db: Session, merchant_id: str):
     print("🎉 測試資料載入完成！")
 
 
+def seed_billing_data(db: Session, merchant_id: str):
+    """載入 Billing 測試資料"""
+    
+    plan_repo = SQLAlchemyPlanRepository(db)
+    subscription_repo = SQLAlchemySubscriptionRepository(db)
+    
+    print("💳 載入方案資料...")
+    
+    # 建立方案（直接插入 ORM，因為 Plan 沒有 save 方法）
+    from billing.infrastructure.orm.models import PlanORM
+    
+    # 檢查是否已存在
+    existing_plans = db.query(PlanORM).count()
+    
+    if existing_plans == 0:
+        # 基礎方案
+        basic_plan = PlanORM(
+            id=1,
+            tier="basic",
+            name="基礎方案",
+            description="適合個人工作室",
+            price_amount=Decimal("999"),
+            price_currency="TWD",
+            billing_interval="month",
+            features={
+                "max_bookings_per_month": 100,
+                "max_staff": 3,
+                "max_services": 20,
+                "enable_line_notification": True,
+                "enable_custom_branding": False,
+                "enable_analytics": False,
+                "support_level": "email"
+            },
+            is_active=True
+        )
+        
+        db.add(basic_plan)
+        db.commit()
+        
+        print("✅ 1 個方案已載入")
+    else:
+        print("⏭️  方案已存在，跳過")
+    
+    print("📋 載入訂閱資料...")
+    
+    # 為測試商家建立訂閱（試用中）
+    from datetime import datetime, timedelta, timezone as dt_timezone
+    
+    now = datetime.now(dt_timezone.utc)
+    trial_end = now + timedelta(days=14)
+    
+    subscription = Subscription(
+        id=str(uuid4()),
+        merchant_id=merchant_id,
+        plan_id=1,
+        status=SubscriptionStatus.TRIALING,
+        current_period_start=now,
+        current_period_end=trial_end,
+        trial_end=trial_end
+    )
+    
+    subscription_repo.save(subscription)
+    db.commit()
+    
+    print("✅ 1 個訂閱已載入（試用中）")
+
+
 def main():
     """主函式"""
     print("🌱 載入測試資料...")
@@ -185,6 +256,9 @@ def main():
     try:
         # 先載入商家
         merchant_id = seed_merchant_data(db)
+        
+        # 載入計費資料（方案與訂閱）
+        seed_billing_data(db, merchant_id)
         
         # 再載入服務與員工
         seed_catalog_data(db, merchant_id)

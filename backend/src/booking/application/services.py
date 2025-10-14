@@ -49,14 +49,14 @@ class BookingService:
         booking_repo: BookingRepository,
         booking_lock_repo: BookingLockRepository,
         catalog_service: Optional["CatalogService"] = None,  # Catalog Context
-        merchant_service: Optional["MerchantService"] = None  # Merchant Context
-        # billing_service: BillingService  # 待實作
+        merchant_service: Optional["MerchantService"] = None,  # Merchant Context
+        billing_service: Optional["BillingService"] = None  # Billing Context
     ):
         self.booking_repo = booking_repo
         self.booking_lock_repo = booking_lock_repo
         self.catalog_service = catalog_service
         self.merchant_service = merchant_service
-        # self.billing_service = billing_service
+        self.billing_service = billing_service
     
     async def create_booking(
         self,
@@ -101,10 +101,12 @@ class BookingService:
             pass
         
         # === STEP 2: 驗證訂閱狀態 ===
-        # TODO: 待 Billing Context 實作後整合
-        # subscription = await self.billing_service.get_active_subscription(merchant_id)
-        # if subscription.status == 'past_due':
-        #     raise SubscriptionPastDueError(merchant_id)
+        if self.billing_service:
+            # 使用真實的 BillingService 驗證訂閱狀態
+            self.billing_service.validate_can_create_booking(merchant_id)
+        else:
+            # Fallback: 跳過訂閱驗證（向後相容）
+            pass
         
         # === STEP 3: 驗證員工與服務，計算價格時長 ===
         booking_items = []
