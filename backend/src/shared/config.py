@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     
     # Database - PostgreSQL
     database_url: PostgresDsn = Field(
-        default="postgresql://postgres:postgres@localhost:5432/nail_booking"
+        default="postgresql://dev:dev123@localhost:5432/nail_booking"
     )
     database_pool_size: int = 20
     database_max_overflow: int = 0

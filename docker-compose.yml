@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 資料庫
+  postgres:
+    image: postgres:15-alpine
+    container_name: nail_booking_postgres
+    environment:
+      POSTGRES_DB: nail_booking
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev123
+      # 啟用時區支援
+      TZ: Asia/Taipei
+      PGTZ: Asia/Taipei
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # 初始化腳本（如需要）
+      # - ./backend/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev -d nail_booking"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nail_booking_network
+
+  # Redis 快取/佇列
+  redis:
+    image: redis:7-alpine
+    container_name: nail_booking_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --requirepass dev123
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nail_booking_network
+
+  # pgAdmin（資料庫管理工具，可選）
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: nail_booking_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@nailbooking.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - nail_booking_network
+    profiles:
+      - tools  # 使用 --profile tools 才啟動
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  nail_booking_network:
+    driver: bridge
+
