@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-size: 16px;
+  --background: #faf8f5;
+  --foreground: #5d4e37;
+  --card: #ffffff;
+  --card-foreground: #5d4e37;
+  --popover: #ffffff;
+  --popover-foreground: #5d4e37;
+  --primary: #8B7355;
+  --primary-foreground: #ffffff;
+  --secondary: #f5e6d3;
+  --secondary-foreground: #5d4e37;
+  --muted: #f0ede8;
+  --muted-foreground: #8a7a6b;
+  --disabled: #e8e3dd;
+  --disabled-foreground: #9c8b7a;
+  --accent: #e8d5c4;
+  --accent-foreground: #5d4e37;
+  --destructive: #d4183d;
+  --destructive-foreground: #ffffff;
+  --border: rgba(139, 115, 85, 0.2);
+  --input: transparent;
+  --input-background: #f8f5f1;
+  --switch-background: #e8d5c4;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: #8B7355;
+  --chart-1: #8B7355;
+  --chart-2: #f4c2c2;
+  --chart-3: #a8d8ea;
+  --chart-4: #ffb3ba;
+  --chart-5: #bae1ff;
+  --radius: 0.625rem;
+  --sidebar: #f5e6d3;
+  --sidebar-foreground: #5d4e37;
+  --sidebar-primary: #8B7355;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e8d5c4;
+  --sidebar-accent-foreground: #5d4e37;
+  --sidebar-border: rgba(139, 115, 85, 0.2);
+  --sidebar-ring: #8B7355;
+  
+  /* 美甲主題色彩 */
+  --milk-tea: #8B7355;
+  --light-pink: #f4c2c2;
+  --light-blue: #a8d8ea;
+  --cream: #f5e6d3;
+  --warm-white: #faf8f5;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --card: #0a0a0a;
+  --card-foreground: #fafafa;
+  --popover: #0a0a0a;
+  --popover-foreground: #fafafa;
+  --primary: #fafafa;
+  --primary-foreground: #0a0a0a;
+  --secondary: #262626;
+  --secondary-foreground: #fafafa;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --accent: #262626;
+  --accent-foreground: #fafafa;
+  --destructive: #ef4444;
+  --destructive-foreground: #fafafa;
+  --border: #262626;
+  --input: #262626;
+  --ring: #525252;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+html {
+  font-size: var(--font-size);
+}

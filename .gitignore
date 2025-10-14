@@ -1,0 +1,83 @@
+# Git
+.gitmessage
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# 虛擬環境
+venv/
+env/
+ENV/
+.venv/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# 環境變數
+.env
+.env.local
+.env.*.local
+
+# 資料庫
+*.db
+*.sqlite
+*.sqlite3
+
+# 測試覆蓋率
+.coverage
+htmlcov/
+.pytest_cache/
+coverage.xml
+
+# JavaScript/Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp.*
+
+# React Build
+frontend/*/build/
+frontend/*/dist/
+frontend/*/.next/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Output files
+output/
