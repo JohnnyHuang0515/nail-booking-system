@@ -210,6 +210,33 @@ class BookingService:
         )
         event_bus.publish(event)
         
+        # === STEP 10: 觸發通知（LINE 推播）===
+        # 簡化版：直接調用 NotificationService（實際環境應由 EventBus 非同步處理）
+        if self.merchant_service:
+            try:
+                from notification.application.services import NotificationService
+                
+                merchant = self.merchant_service.get_merchant(merchant_id)
+                notification_service = NotificationService()
+                
+                # 提取服務名稱
+                service_names = [item.service_name for item in saved_booking.items]
+                service_name = service_names[0] if service_names else "預約服務"
+                
+                notification_service.send_booking_confirmed_notification(
+                    merchant=merchant,
+                    customer_line_user_id=customer.line_user_id,
+                    customer_name=customer.name or "客戶",
+                    booking_id=saved_booking.id,
+                    start_at=start_at.strftime("%Y-%m-%d %H:%M"),
+                    service_name=service_name
+                )
+                
+                logger.info(f"✅ LINE 通知已發送: {saved_booking.id}")
+            except Exception as e:
+                # 通知失敗不影響預約建立
+                logger.warning(f"⚠️  LINE 通知發送失敗（不影響預約）: {e}")
+        
         logger.info(f"Booking created: {saved_booking.id}")
         return saved_booking
     
