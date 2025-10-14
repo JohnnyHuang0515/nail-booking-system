@@ -2,14 +2,13 @@
 Booking Context - Infrastructure Layer - LIFF API Router
 LIFF 客戶端使用的預約 API
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from booking.application.services import BookingService
 from booking.application.dtos import (
     CreateBookingRequest,
-    BookingResponse,
-    CancelBookingRequest
+    BookingResponse
 )
 from booking.domain.exceptions import (
     BookingOverlapError,
@@ -150,15 +149,63 @@ async def create_booking(
         raise HTTPException(status_code=500, detail=f"建立預約失敗: {str(e)}")
 
 
-@router.delete("/bookings/{booking_id}", status_code=status.HTTP_200_OK)
+# ✅ 已移除舊版 DELETE 端點（使用 body）- 改用下方的 Query 參數版本
+
+
+@router.get("/bookings", response_model=list[BookingResponse])
+async def list_bookings(
+    merchant_id: str = Query(..., description="商家 ID"),
+    service: BookingService = Depends(get_booking_service)
+):
+    """
+    查詢預約列表
+    
+    - **merchant_id**: 商家 ID
+    
+    TODO: 添加 JWT 認證後，從 token 提取 customer 資訊進行過濾
+    """
+    bookings = await service.list_bookings(
+        merchant_id=merchant_id
+    )
+    
+    return [_booking_to_response(b) for b in bookings]
+
+
+@router.get("/bookings/{booking_id}", response_model=BookingResponse)
+async def get_booking(
+    booking_id: str,
+    merchant_id: str = Query(..., description="商家 ID"),
+    service: BookingService = Depends(get_booking_service)
+):
+    """
+    查詢預約詳情
+    
+    - **booking_id**: 預約 ID
+    - **merchant_id**: 商家 ID
+    """
+    booking = await service.get_booking(booking_id, merchant_id)
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="預約不存在")
+    
+    return _booking_to_response(booking)
+
+
+@router.delete("/bookings/{booking_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def cancel_booking(
     booking_id: str,
-    request: CancelBookingRequest,
-    service: BookingService = Depends(get_booking_service),
-    db: Session = Depends(get_db)
+    merchant_id: str = Query(..., description="商家 ID"),
+    requester_line_id: str = Query("customer", description="請求者 LINE ID"),
+    reason: str = Query("", description="取消原因"),
+    service: BookingService = Depends(get_booking_service)
 ):
     """
     取消預約（LIFF 客戶端）
+    
+    - **booking_id**: 預約 ID
+    - **merchant_id**: 商家 ID
+    - **requester_line_id**: 請求者 LINE ID（TODO: 從 JWT 提取）
+    - **reason**: 取消原因（可選）
     
     驗證：
     - 只有預約擁有者可取消
@@ -170,43 +217,32 @@ async def cancel_booking(
         400: 已完成無法取消
     """
     try:
-        booking = await service.cancel_booking(
+        await service.cancel_booking(
             booking_id=booking_id,
-            merchant_id=request.merchant_id,
-            requester_line_id=request.requester_line_id,
-            reason=request.reason or ""
+            merchant_id=merchant_id,
+            requester_line_id=requester_line_id,
+            reason=reason
         )
         
-        db.commit()
-        
-        return {"message": "預約已取消", "booking_id": booking.id}
+        return None
     
     except EntityNotFoundError:
-        db.rollback()
-        raise HTTPException(status_code=404, detail="預約不存在")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="預約不存在"
+        )
     
     except PermissionDeniedError as e:
-        db.rollback()
-        raise HTTPException(status_code=403, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e)
+        )
     
     except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@router.get("/bookings/{booking_id}", response_model=BookingResponse)
-async def get_booking(
-    booking_id: str,
-    merchant_id: str,
-    service: BookingService = Depends(get_booking_service)
-):
-    """查詢預約詳情"""
-    booking = await service.get_booking(booking_id, merchant_id)
-    
-    if not booking:
-        raise HTTPException(status_code=404, detail="預約不存在")
-    
-    return _booking_to_response(booking)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"取消預約失敗: {str(e)}"
+        )
 
 
 # === Helper Functions ===
