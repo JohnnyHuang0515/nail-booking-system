@@ -1,51 +1,66 @@
-# 🚀 TaskMaster & Claude Code Collective
+# LINE 美甲預約系統
 
-**人類主導的文檔導向智能協作開發平台**
+**基於 DDD × BDD × TDD 的多租戶預約系統**
 
-> **核心理念**: 人類是鋼彈駕駛員，TaskMaster 是智能副駕駛
+> **協作模式**: 人類駕駛員 + Claude 智能副駕駛（搭載 Linus Torvalds 心法）  
+> **架構方法論**: Domain-Driven Design + Behavior-Driven Development + Test-Driven Development
 
 ## 🎯 系統特色
 
-- **📄 文檔導向流程** - Phase 1-2 先生成專案文檔供駕駛員審查，通過後才進入 Phase 3 開發
-- **🤖⚔️ TaskMaster 協調** - Hub-and-Spoke 智能任務分配，人類保持最終決策權
-- **📋 WBS Todo List** - 統一開發狀態管理，全程透明化追蹤
-- **🎨 VibeCoding 範本** - 10 個企業級工作流程範本，JIT 智能載入
-- **🪝 自動化 Hooks** - 偵測 CLAUDE_TEMPLATE.md 自動觸發，無縫整合現有工作流程
-- **🔍 駕駛員審查閘道** - Phase 2.5 強制審查檢查點，確保文檔品質
+- **📱 三前端架構** - Admin Panel、Merchant Portal、LIFF Customer App 獨立部署
+- **🏗️ 六個 Bounded Context** - Identity、Merchant、Catalog、Booking、Billing、Notification
+- **🔒 強一致性保證** - PostgreSQL EXCLUDE 約束防止預約重疊
+- **👥 多租戶隔離** - Tenant = Merchant，RLS + merchant_id 過濾
+- **📲 LINE 深度整合** - LIFF + Messaging API + Webhook
+- **💳 訂閱計費** - Stripe 整合，逾期自動降級功能
 
-## 🚀 **快速開始**
+## 🚀 快速開始
 
-### 1️⃣ 獲得專案
+### 後端開發
 ```bash
-# 下載專案到您的電腦
-git clone [project-url]
-cd claude-agentic-coding-template
+cd backend
+
+# 安裝依賴
+pip install -r requirements.txt
+
+# 設定環境變數
+cp .env.example .env
+vim .env
+
+# 執行資料庫遷移
+alembic upgrade head
+
+# 啟動開發服務器
+make dev
+# 或: uvicorn src.api.main:app --reload
 ```
 
-### 2️⃣ 初始化設定
+### 前端開發
 ```bash
-# 複製專案初始化範本
-cp CLAUDE_TEMPLATE.md my-first-project.md
+# 管理後台
+cd frontend/admin-panel
+npm install
+npm start  # http://localhost:3000
+
+# 客戶預約 LIFF
+cd frontend/customer-booking
+npm install
+npm start  # http://localhost:3001
 ```
 
-### 3️⃣ 啟動 Claude Code 並開啟專案
+### 執行測試
 ```bash
-claude code
-# 在 Claude Code 中開啟這個專案目錄
+cd backend
+
+# 單元測試
+pytest tests/unit/ -v
+
+# BDD 測試
+behave tests/features/
+
+# 覆蓋率報告
+pytest --cov=src --cov-report=html
 ```
-
-### 4️⃣ 自動 TaskMaster 初始化
-- Claude Code 會自動偵測到 `CLAUDE_TEMPLATE.md` 檔案
-- 系統會詢問：「我偵測到一個 TaskMaster 專案範本。您想要我初始化一個智能協作專案嗎？」
-- **選擇「是」開始初始化流程**
-
-### 5️⃣ VibeCoding 7問快速澄清 + TaskMaster 設定
-完成專案需求分析後，TaskMaster 會自動：
-- 📚 載入相關 VibeCoding 範本
-- 🎯 生成智能任務列表
-- 📊 評估專案複雜度
-- 📋 建立 WBS Todo List
-- 🤖 配置 Hub 協調策略
 
 ## 🎛️ **TaskMaster 控制模式**
 
