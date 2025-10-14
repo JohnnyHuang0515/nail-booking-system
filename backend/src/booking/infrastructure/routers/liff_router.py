@@ -47,8 +47,24 @@ from shared.exceptions import (
     EntityNotFoundError,
     PermissionDeniedError
 )
+from identity.infrastructure.dependencies import get_current_user
+from identity.domain.models import User
 
 router = APIRouter(prefix="/liff", tags=["LIFF Booking"])
+
+
+def validate_merchant_access(user: User, merchant_id: str):
+    """
+    驗證用戶是否有權訪問指定商家
+    
+    Raises:
+        HTTPException 403: 無權訪問
+    """
+    if not user.can_access_merchant(merchant_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"無權訪問商家 {merchant_id}"
+        )
 
 
 def get_booking_service(db: Session = Depends(get_db)) -> BookingService:
@@ -86,6 +102,7 @@ def get_booking_service(db: Session = Depends(get_db)) -> BookingService:
 @router.post("/bookings", response_model=BookingResponse, status_code=status.HTTP_201_CREATED)
 async def create_booking(
     request: CreateBookingRequest,
+    current_user: User = Depends(get_current_user),
     service: BookingService = Depends(get_booking_service),
     db: Session = Depends(get_db)
 ):
@@ -93,17 +110,21 @@ async def create_booking(
     建立預約（LIFF 客戶端）
     
     流程：
-    1. 驗證商家與訂閱狀態
-    2. 計算價格與時長
-    3. 檢查時段衝突
-    4. 建立 BookingLock + Booking
-    5. 發布 BookingConfirmed 事件
-    6. LINE 推播（異步）
+    1. **驗證租戶訪問權限** 🔒
+    2. 驗證商家與訂閱狀態
+    3. 計算價格與時長
+    4. 檢查時段衝突
+    5. 建立 BookingLock + Booking
+    6. 發布 BookingConfirmed 事件
+    7. LINE 推播（異步）
     
     Raises:
-        403: 商家停用或訂閱逾期
+        403: 無權訪問商家、商家停用或訂閱逾期
         400: 員工停用、服務停用、時段衝突
     """
+    # 驗證租戶訪問權限
+    validate_merchant_access(current_user, request.merchant_id)
+    
     try:
         # 轉換 DTO 為 Domain 物件
         customer = Customer(
@@ -155,6 +176,7 @@ async def create_booking(
 @router.get("/bookings", response_model=list[BookingResponse])
 async def list_bookings(
     merchant_id: str = Query(..., description="商家 ID"),
+    current_user: User = Depends(get_current_user),
     service: BookingService = Depends(get_booking_service)
 ):
     """
@@ -162,8 +184,12 @@ async def list_bookings(
     
     - **merchant_id**: 商家 ID
     
-    TODO: 添加 JWT 認證後，從 token 提取 customer 資訊進行過濾
+    驗證：
+    - 用戶必須有權訪問此商家 🔒
     """
+    # 驗證租戶訪問權限
+    validate_merchant_access(current_user, merchant_id)
+    
     bookings = await service.list_bookings(
         merchant_id=merchant_id
     )
@@ -175,6 +201,7 @@ async def list_bookings(
 async def get_booking(
     booking_id: str,
     merchant_id: str = Query(..., description="商家 ID"),
+    current_user: User = Depends(get_current_user),
     service: BookingService = Depends(get_booking_service)
 ):
     """
@@ -182,7 +209,13 @@ async def get_booking(
     
     - **booking_id**: 預約 ID
     - **merchant_id**: 商家 ID
+    
+    驗證：
+    - 用戶必須有權訪問此商家 🔒
     """
+    # 驗證租戶訪問權限
+    validate_merchant_access(current_user, merchant_id)
+    
     booking = await service.get_booking(booking_id, merchant_id)
     
     if not booking:
@@ -197,6 +230,7 @@ async def cancel_booking(
     merchant_id: str = Query(..., description="商家 ID"),
     requester_line_id: str = Query("customer", description="請求者 LINE ID"),
     reason: str = Query("", description="取消原因"),
+    current_user: User = Depends(get_current_user),
     service: BookingService = Depends(get_booking_service)
 ):
     """
@@ -208,14 +242,18 @@ async def cancel_booking(
     - **reason**: 取消原因（可選）
     
     驗證：
+    - 用戶必須有權訪問此商家 🔒
     - 只有預約擁有者可取消
     - 狀態必須為 confirmed 或 pending
     
     Raises:
+        403: 無權訪問商家、無權取消
         404: 預約不存在
-        403: 無權取消
         400: 已完成無法取消
     """
+    # 驗證租戶訪問權限
+    validate_merchant_access(current_user, merchant_id)
+    
     try:
         await service.cancel_booking(
             booking_id=booking_id,
