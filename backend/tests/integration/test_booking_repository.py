@@ -54,12 +54,12 @@ class TestBookingRepository:
         db_session_commit.commit()
         
         # Assert - 重新取得
-        retrieved = repo.get_by_id(booking.id)
+        retrieved = repo.find_by_id(booking.id, booking.merchant_id)
         assert retrieved is not None
         assert retrieved.id == booking.id
         assert retrieved.customer.line_user_id == "U123456789"
         assert retrieved.status == BookingStatus.CONFIRMED
-        assert retrieved.total_price.amount == Decimal("800")
+        assert retrieved.total_price().amount == Decimal("800")
         assert len(retrieved.items) == 1
     
     def test_update_booking_status(self, db_session_commit):
@@ -93,7 +93,7 @@ class TestBookingRepository:
         db_session_commit.commit()
         
         # Assert
-        retrieved = repo.get_by_id(booking.id)
+        retrieved = repo.find_by_id(booking.id, test_merchant_id)
         assert retrieved.status == BookingStatus.CONFIRMED
     
     def test_list_bookings_by_merchant(self, db_session_commit):
@@ -213,7 +213,7 @@ class TestBookingRepository:
         db_session_commit.commit()
         
         # Assert
-        retrieved = repo.get_by_id(booking.id)
+        retrieved = repo.find_by_id(booking.id, test_merchant_id)
         assert retrieved is None
 
 
@@ -241,7 +241,7 @@ class TestBookingLockRepository:
         db_session_commit.commit()
         
         # Assert - 查詢鎖
-        retrieved = repo.get_by_id(lock.id)
+        retrieved = repo.find_by_id(lock.id)
         assert retrieved is not None
         assert retrieved.staff_id == 1
         assert retrieved.merchant_id == merchant_id
