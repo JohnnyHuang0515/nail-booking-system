@@ -2,7 +2,7 @@
 Booking Context - Application Layer - DTOs
 Data Transfer Objects: API 請求/響應結構
 """
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal
 from typing import Optional
 from pydantic import BaseModel, Field, field_validator
