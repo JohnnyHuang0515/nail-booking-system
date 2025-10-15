@@ -21,11 +21,11 @@ export function useAuth() {
   const login = async (email: string, password: string) => {
     try {
       const response = await systemAdminApiService.login(email, password);
-      if (response.access_token) {
-        localStorage.setItem('system_admin_token', response.access_token);
+      if (response.token) {
+        localStorage.setItem('system_admin_token', response.token);
         localStorage.setItem('system_admin_user', JSON.stringify(response.user));
         
-        systemAdminApiService.setAuthToken(response.access_token);
+        systemAdminApiService.setAuthToken(response.token);
         
         setUserData(response.user);
         setIsAuthenticated(true);
