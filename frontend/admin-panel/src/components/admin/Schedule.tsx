@@ -2,11 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Switch } from '../ui/switch';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Plus, Clock, Calendar, Trash2, AlertCircle } from 'lucide-react';
+import { Plus, Calendar, Trash2, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '../ui/dialog';
 import adminApiService from '../../services/api';
 
@@ -28,31 +27,20 @@ export default function Schedule() {
   const [holidays, setHolidays] = useState<StaffHoliday[]>([]);
   const [staffList, setStaffList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
-  const [weekdays, setWeekdays] = useState([
-    { id: 'monday', name: '星期一', enabled: true },
-    { id: 'tuesday', name: '星期二', enabled: true },
-    { id: 'wednesday', name: '星期三', enabled: true },
-    { id: 'thursday', name: '星期四', enabled: true },
-    { id: 'friday', name: '星期五', enabled: true },
-    { id: 'saturday', name: '星期六', enabled: true },
-    { id: 'sunday', name: '星期日', enabled: false },
-  ]);
 
   // 固定時段：12:00, 15:00, 18:00
   const fixedTimeSlots = ['12:00', '15:00', '18:00'];
 
-  // 載入營業時間、休假資料和美甲師列表
+  // 載入休假資料和美甲師列表
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
         setError('');
         
-        const [holidaysData, businessHours, staffData] = await Promise.all([
+        const [holidaysData, staffData] = await Promise.all([
           adminApiService.getStaffHolidays(),
-          adminApiService.getBusinessHours(),
           adminApiService.getStaff()
         ]);
         
@@ -69,12 +57,6 @@ export default function Schedule() {
         // 設定美甲師列表
         setStaffList(staffData);
         console.log('✅ 載入美甲師列表:', staffData);
-        
-        // 設定營業時間
-        setWeekdays(prev => prev.map(day => ({
-          ...day,
-          enabled: businessHours[day.id] || false
-        })));
         
       } catch (err) {
         console.error('載入資料錯誤:', err);
@@ -156,41 +138,6 @@ export default function Schedule() {
     }
   };
 
-  const handleWeekdayToggle = (dayId: string) => {
-    setWeekdays(prev => prev.map(day => 
-      day.id === dayId ? { ...day, enabled: !day.enabled } : day
-    ));
-  };
-
-  const handleSaveBusinessHours = async () => {
-    try {
-      setSaving(true);
-      setError('');
-      
-      // 轉換為 API 格式
-      const businessHours = {
-        monday: weekdays.find(d => d.id === 'monday')?.enabled || false,
-        tuesday: weekdays.find(d => d.id === 'tuesday')?.enabled || false,
-        wednesday: weekdays.find(d => d.id === 'wednesday')?.enabled || false,
-        thursday: weekdays.find(d => d.id === 'thursday')?.enabled || false,
-        friday: weekdays.find(d => d.id === 'friday')?.enabled || false,
-        saturday: weekdays.find(d => d.id === 'saturday')?.enabled || false,
-        sunday: weekdays.find(d => d.id === 'sunday')?.enabled || false,
-      };
-      
-      await adminApiService.updateBusinessHours(businessHours);
-      
-      // 顯示成功訊息
-      setError('');
-      alert('營業時間設定已儲存！');
-      
-    } catch (err: any) {
-      console.error('儲存營業時間錯誤:', err);
-      setError(err.message || '儲存營業時間失敗，請稍後再試');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -198,52 +145,18 @@ export default function Schedule() {
         <h1 className="text-2xl font-semibold text-foreground">時段管理</h1>
       </div>
 
-      {/* 營業時間設定 */}
+      {/* 美甲師休假管理 */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Clock className="h-5 w-5 mr-2 text-primary" />
-            營業時間設定
+            <Calendar className="h-5 w-5 mr-2 text-primary" />
+            美甲師休假管理
           </CardTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            美甲師預設每天都要上班，只有設定休假時才不上班
+          </p>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {weekdays.map((day) => (
-              <div key={day.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center space-x-4">
-                  <Switch 
-                    checked={day.enabled} 
-                    onCheckedChange={() => handleWeekdayToggle(day.id)}
-                  />
-                  <Label className="font-medium w-16">{day.name}</Label>
-                </div>
-                {day.enabled ? (
-                  <Badge variant="default" className="bg-green-100 text-green-800">
-                    營業中
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary">休息日</Badge>
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="mt-6">
-            <Button 
-              className="bg-primary hover:bg-primary/90"
-              onClick={handleSaveBusinessHours}
-              disabled={saving}
-            >
-              {saving ? '儲存中...' : '儲存營業時間'}
-            </Button>
-          </div>
-          {error && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <div className="flex items-center space-x-2">
-                <AlertCircle className="h-4 w-4 text-red-500" />
-                <span className="text-sm text-red-700">{error}</span>
-              </div>
-            </div>
-          )}
           <div className="mt-4 p-4 bg-blue-50 rounded-lg">
             <h4 className="font-medium text-blue-900 mb-2">固定時段</h4>
             <div className="flex space-x-2">
@@ -254,7 +167,7 @@ export default function Schedule() {
               ))}
             </div>
             <p className="text-sm text-blue-700 mt-2">
-              所有營業日都提供 12:00、15:00、18:00 三個固定時段
+              系統將根據美甲師休假情況自動調整可預約時段
             </p>
           </div>
         </CardContent>
@@ -410,10 +323,6 @@ export default function Schedule() {
             <div className="flex items-center justify-between">
               <Label htmlFor="advance-booking">提前預約天數</Label>
               <Input id="advance-booking" type="number" defaultValue="30" className="w-24" />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="same-day">允許當日預約</Label>
-              <Switch defaultChecked />
             </div>
           </div>
           <div className="mt-6">
