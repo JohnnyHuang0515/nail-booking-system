@@ -83,8 +83,15 @@ except Exception as e:
     import traceback
     traceback.print_exc()
 
-# TODO: 新增系統管理員路由
-# app.include_router(admin_router.router)
+# 系統管理員 API - 系統管理
+try:
+    from api.routers import admin_router
+    app.include_router(admin_router.router)
+    logger.info("✅ Admin router loaded")
+except Exception as e:
+    logger.error(f"❌ Failed to load admin router: {e}")
+    import traceback
+    traceback.print_exc()
 
 
 # === 健康檢查 ===
