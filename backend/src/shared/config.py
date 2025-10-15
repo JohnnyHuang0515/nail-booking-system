@@ -64,6 +64,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = [
         "http://localhost:3000",  # Admin Panel
         "http://localhost:3001",  # Customer Booking
+        "http://localhost:3002",  # System Admin Panel
         "https://liff.line.me",   # LINE LIFF
     ]
     

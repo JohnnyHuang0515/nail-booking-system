@@ -7,18 +7,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import logging
 
-from shared.config import settings
-from shared.database import engine, Base
-from booking.infrastructure.routers import liff_router
-
-# 設定日誌
-logging.basicConfig(
-    level=settings.log_level,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-
-logger = logging.getLogger(__name__)
-
 # 建立 FastAPI 應用
 app = FastAPI(
     title="LINE 美甲預約系統 API",
@@ -31,68 +19,16 @@ app = FastAPI(
 # CORS 中介層
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=[
+        "http://localhost:3000",  # Admin Panel
+        "http://localhost:3001",  # Customer Booking
+        "http://localhost:3002",  # System Admin Panel
+        "https://liff.line.me",   # LINE LIFF
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-# === 路由註冊 ===
-
-# 註冊路由
-from identity.infrastructure.routers import auth_router
-from api.routers import public_router
-
-# Identity Context - 認證 API
-app.include_router(auth_router.router)
-
-# Public API - 公開查詢（無需認證）
-app.include_router(public_router.router)
-
-# Booking Context - LIFF 客戶端 API
-app.include_router(liff_router.router)
-
-# Merchant API - 商家端
-try:
-    from api.routers import merchant_router
-    app.include_router(merchant_router.router)
-    logger.info("✅ Merchant router loaded")
-except Exception as e:
-    logger.error(f"❌ Failed to load merchant router: {e}")
-    import traceback
-    traceback.print_exc()
-
-# Billing API - 訂閱計費
-try:
-    from api.routers import billing_router
-    app.include_router(billing_router.router)
-    logger.info("✅ Billing router loaded")
-except Exception as e:
-    logger.error(f"❌ Failed to load billing router: {e}")
-    import traceback
-    traceback.print_exc()
-
-# Notification API - 通知推播
-try:
-    from api.routers import notification_router
-    app.include_router(notification_router.router)
-    logger.info("✅ Notification router loaded")
-except Exception as e:
-    logger.error(f"❌ Failed to load notification router: {e}")
-    import traceback
-    traceback.print_exc()
-
-# 系統管理員 API - 系統管理
-try:
-    from api.routers import admin_router
-    app.include_router(admin_router.router)
-    logger.info("✅ Admin router loaded")
-except Exception as e:
-    logger.error(f"❌ Failed to load admin router: {e}")
-    import traceback
-    traceback.print_exc()
-
 
 # === 健康檢查 ===
 
@@ -103,9 +39,8 @@ async def health_check():
         "status": "healthy",
         "service": "nail-booking-api",
         "version": "0.1.0",
-        "environment": settings.environment
+        "environment": "development"
     }
-
 
 @app.get("/", tags=["System"])
 async def root():
@@ -116,12 +51,12 @@ async def root():
         "health": "/health"
     }
 
-
 # === 全局異常處理 ===
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
     """全局異常處理"""
+    logger = logging.getLogger(__name__)
     logger.error(f"Unhandled exception: {exc}", exc_info=True)
     return JSONResponse(
         status_code=500,
@@ -131,34 +66,11 @@ async def global_exception_handler(request, exc):
         }
     )
 
-
-# === 啟動事件 ===
-
-@app.on_event("startup")
-async def startup_event():
-    """應用啟動時執行"""
-    logger.info("🚀 API Server starting...")
-    logger.info(f"Environment: {settings.environment}")
-    logger.info(f"Debug mode: {settings.debug}")
-    
-    # 開發環境：自動建立資料表（生產環境應使用 Alembic）
-    if settings.debug:
-        logger.warning("Debug mode: Creating database tables...")
-        Base.metadata.create_all(bind=engine)
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """應用關閉時執行"""
-    logger.info("👋 API Server shutting down...")
-
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
         port=8000,
-        reload=settings.debug
+        reload=True
     )
-
