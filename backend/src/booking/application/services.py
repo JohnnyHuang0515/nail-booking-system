@@ -293,9 +293,12 @@ class BookingService:
         if not booking:
             raise EntityNotFoundError("Booking", booking_id)
         
-        # 驗證權限：只有預約擁有者可取消
-        if booking.customer.line_user_id != requester_line_id:
-            raise PermissionDeniedError("只有預約擁有者可以取消預約")
+        # 驗證權限：商家或預約擁有者可取消
+        is_merchant = requester_line_id == "merchant"
+        is_owner = booking.customer.line_user_id == requester_line_id
+        
+        if not (is_merchant or is_owner):
+            raise PermissionDeniedError("只有預約擁有者或商家可以取消預約")
         
         # 執行取消（狀態檢查在 Domain 內）
         booking.cancel(cancelled_by=requester_line_id, reason=reason)
@@ -359,6 +362,24 @@ class BookingService:
         Returns:
             [{"start_time": "14:00", "end_time": "15:00", "available": True}, ...]
         """
+        # 設定時區（台北時間 UTC+8）
+        from datetime import timezone, timedelta
+        tz = timezone(timedelta(hours=8))  # Asia/Taipei
+        
+        # 檢查是否為休假日
+        if self.catalog_service:
+            holidays = await self.catalog_service.list_holidays(
+                merchant_id=merchant_id,
+                start_date=target_date,
+                end_date=target_date
+            )
+            
+            # 檢查目標日期是否為休假日（包含重複休假日）
+            for holiday in holidays:
+                if holiday.is_on_date(target_date):
+                    # 休假日，無可用時段
+                    return []
+        
         # 取得員工工時
         if self.catalog_service:
             staff = await self.catalog_service.get_staff(staff_id, merchant_id)
@@ -372,16 +393,16 @@ class BookingService:
                 # 該天無工作時間
                 return []
             
-            working_start = datetime.combine(target_date, working_hours.start_time)
-            working_end = datetime.combine(target_date, working_hours.end_time)
+            working_start = datetime.combine(target_date, working_hours.start_time, tzinfo=tz)
+            working_end = datetime.combine(target_date, working_hours.end_time, tzinfo=tz)
         else:
             # Fallback: 固定工時 10:00-18:00
-            working_start = datetime.combine(target_date, time(10, 0))
-            working_end = datetime.combine(target_date, time(18, 0))
+            working_start = datetime.combine(target_date, time(10, 0), tzinfo=tz)
+            working_end = datetime.combine(target_date, time(18, 0), tzinfo=tz)
         
         # 取得當天所有預約
-        day_start = datetime.combine(target_date, time(0, 0))
-        day_end = datetime.combine(target_date, time(23, 59, 59))
+        day_start = datetime.combine(target_date, time(0, 0), tzinfo=tz)
+        day_end = datetime.combine(target_date, time(23, 59, 59), tzinfo=tz)
         
         bookings = self.booking_repo.find_by_staff_and_date_range(
             merchant_id=merchant_id,

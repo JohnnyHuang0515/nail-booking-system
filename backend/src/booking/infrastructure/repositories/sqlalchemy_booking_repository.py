@@ -139,6 +139,9 @@ class SQLAlchemyBookingRepository(BookingRepository):
         # 轉換 items JSON 為 BookingItem 物件
         items = []
         for item_data in orm.items:
+            # 兼容兩種欄位名稱格式
+            duration_minutes = item_data.get("service_duration_minutes") or item_data.get("service_duration")
+            
             item = BookingItem(
                 service_id=item_data["service_id"],
                 service_name=item_data["service_name"],
@@ -146,7 +149,7 @@ class SQLAlchemyBookingRepository(BookingRepository):
                     amount=Decimal(str(item_data["service_price"])),
                     currency=item_data.get("currency", "TWD")
                 ),
-                service_duration=Duration(minutes=item_data["service_duration_minutes"]),
+                service_duration=Duration(minutes=duration_minutes),
                 option_ids=item_data.get("option_ids", []),
                 option_names=item_data.get("option_names", []),
                 option_prices=[

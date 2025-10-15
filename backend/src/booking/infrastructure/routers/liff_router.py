@@ -74,8 +74,10 @@ def get_booking_service(db: Session = Depends(get_db)) -> BookingService:
     booking_lock_repo = SQLAlchemyBookingLockRepository(db)
     
     # Catalog Repositories
+    from catalog.infrastructure.repositories.sqlalchemy_holiday_repository import SQLAlchemyHolidayRepository
     service_repo = SQLAlchemyServiceRepository(db)
     staff_repo = SQLAlchemyStaffRepository(db)
+    holiday_repo = SQLAlchemyHolidayRepository(db)
     
     # Merchant Repository
     merchant_repo = SQLAlchemyMerchantRepository(db)
@@ -85,7 +87,7 @@ def get_booking_service(db: Session = Depends(get_db)) -> BookingService:
     plan_repo = SQLAlchemyPlanRepository(db)
     
     # Application Services
-    catalog_service = CatalogService(service_repo, staff_repo)
+    catalog_service = CatalogService(service_repo, staff_repo, holiday_repo)
     merchant_service = MerchantService(merchant_repo)
     billing_service = BillingService(subscription_repo, plan_repo)
     

@@ -3,9 +3,11 @@ Catalog Context - Application Layer - Services
 CatalogService: 服務與員工查詢協調者
 """
 from typing import Optional
+from datetime import date
 import logging
 
 from catalog.domain.models import Service, Staff, ServiceOption
+from catalog.domain.holiday import Holiday
 from catalog.domain.repositories import ServiceRepository, StaffRepository
 from catalog.domain.exceptions import (
     ServiceNotFoundError,
@@ -32,10 +34,12 @@ class CatalogService:
     def __init__(
         self,
         service_repo: ServiceRepository,
-        staff_repo: StaffRepository
+        staff_repo: StaffRepository,
+        holiday_repo: Optional['SQLAlchemyHolidayRepository'] = None
     ):
         self.service_repo = service_repo
         self.staff_repo = staff_repo
+        self.holiday_repo = holiday_repo
     
     async def get_service(self, service_id: int, merchant_id: str) -> Service:
         """
@@ -153,4 +157,231 @@ class CatalogService:
     ) -> list[Staff]:
         """取得可執行特定服務的員工列表"""
         return self.staff_repo.find_by_service(service_id, merchant_id)
+    
+    async def create_staff(
+        self,
+        merchant_id: str,
+        name: str,
+        email: Optional[str] = None,
+        phone: Optional[str] = None,
+        skills: Optional[list[int]] = None,
+        is_active: bool = True
+    ) -> Staff:
+        """
+        新增員工
+        
+        Args:
+            merchant_id: 商家 ID
+            name: 員工姓名
+            email: Email
+            phone: 電話
+            skills: 技能（服務ID列表）
+            is_active: 是否啟用
+        
+        Returns:
+            新建的 Staff 實例
+        """
+        # 生成新的 staff_id（實際應用中可能由資料庫自動生成）
+        staff = Staff(
+            id=0,  # 將由資料庫生成
+            merchant_id=merchant_id,
+            name=name,
+            email=email,
+            phone=phone,
+            is_active=is_active,
+            skills=skills or [],
+            working_hours=[]  # 可以後續設定
+        )
+        
+        return self.staff_repo.save(staff)
+    
+    async def update_staff(
+        self,
+        staff_id: int,
+        merchant_id: str,
+        name: Optional[str] = None,
+        email: Optional[str] = None,
+        phone: Optional[str] = None,
+        skills: Optional[list[int]] = None,
+        is_active: Optional[bool] = None
+    ) -> Staff:
+        """
+        更新員工資訊
+        
+        Args:
+            staff_id: 員工 ID
+            merchant_id: 商家 ID
+            name: 員工姓名
+            email: Email
+            phone: 電話
+            skills: 技能（服務ID列表）
+            is_active: 是否啟用
+        
+        Returns:
+            更新後的 Staff 實例
+        
+        Raises:
+            StaffNotFoundError: 員工不存在
+        """
+        staff = await self.get_staff(staff_id, merchant_id)
+        
+        if name is not None:
+            staff.name = name
+        if email is not None:
+            staff.email = email
+        if phone is not None:
+            staff.phone = phone
+        if skills is not None:
+            staff.skills = skills
+        if is_active is not None:
+            staff.is_active = is_active
+        
+        return self.staff_repo.save(staff)
+    
+    async def delete_staff(self, staff_id: int, merchant_id: str) -> None:
+        """
+        刪除員工（軟刪除：設為 is_active=False）
+        
+        Args:
+            staff_id: 員工 ID
+            merchant_id: 商家 ID
+        
+        Raises:
+            StaffNotFoundError: 員工不存在
+        """
+        staff = await self.get_staff(staff_id, merchant_id)
+        staff.is_active = False
+        self.staff_repo.save(staff)
+    
+    # ========== Holiday Management ==========
+    
+    async def create_holiday(
+        self,
+        merchant_id: str,
+        holiday_date: date,
+        name: str,
+        is_recurring: bool = False
+    ) -> Holiday:
+        """
+        創建休假日
+        
+        Args:
+            merchant_id: 商家 ID
+            holiday_date: 休假日期
+            name: 休假名稱
+            is_recurring: 是否每年重複
+        
+        Returns:
+            Holiday: 創建的休假日
+        """
+        if not self.holiday_repo:
+            raise RuntimeError("Holiday repository not initialized")
+        
+        holiday = Holiday(
+            id=None,
+            merchant_id=merchant_id,
+            holiday_date=holiday_date,
+            name=name,
+            is_recurring=is_recurring
+        )
+        
+        return self.holiday_repo.save(holiday)
+    
+    async def list_holidays(
+        self,
+        merchant_id: str,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> list[Holiday]:
+        """
+        查詢商家的休假日
+        
+        Args:
+            merchant_id: 商家 ID
+            start_date: 開始日期（可選，用於範圍查詢）
+            end_date: 結束日期（可選，用於範圍查詢）
+        
+        Returns:
+            list[Holiday]: 休假日列表
+        """
+        if not self.holiday_repo:
+            return []
+        
+        if start_date and end_date:
+            return self.holiday_repo.find_by_date_range(merchant_id, start_date, end_date)
+        else:
+            return self.holiday_repo.find_by_merchant(merchant_id)
+    
+    async def get_holiday(self, holiday_id: int, merchant_id: str) -> Holiday:
+        """
+        取得單一休假日
+        
+        Args:
+            holiday_id: 休假日 ID
+            merchant_id: 商家 ID
+        
+        Returns:
+            Holiday: 休假日
+        
+        Raises:
+            ValueError: 休假日不存在
+        """
+        if not self.holiday_repo:
+            raise RuntimeError("Holiday repository not initialized")
+        
+        holiday = self.holiday_repo.find_by_id(holiday_id, merchant_id)
+        if not holiday:
+            raise ValueError(f"Holiday not found: {holiday_id}")
+        
+        return holiday
+    
+    async def update_holiday(
+        self,
+        holiday_id: int,
+        merchant_id: str,
+        holiday_date: Optional[date] = None,
+        name: Optional[str] = None,
+        is_recurring: Optional[bool] = None
+    ) -> Holiday:
+        """
+        更新休假日
+        
+        Args:
+            holiday_id: 休假日 ID
+            merchant_id: 商家 ID
+            holiday_date: 休假日期（可選）
+            name: 休假名稱（可選）
+            is_recurring: 是否每年重複（可選）
+        
+        Returns:
+            Holiday: 更新後的休假日
+        """
+        if not self.holiday_repo:
+            raise RuntimeError("Holiday repository not initialized")
+        
+        holiday = await self.get_holiday(holiday_id, merchant_id)
+        
+        if holiday_date is not None:
+            holiday.holiday_date = holiday_date
+        if name is not None:
+            holiday.name = name
+        if is_recurring is not None:
+            holiday.is_recurring = is_recurring
+        
+        return self.holiday_repo.save(holiday)
+    
+    async def delete_holiday(self, holiday_id: int, merchant_id: str) -> None:
+        """
+        刪除休假日
+        
+        Args:
+            holiday_id: 休假日 ID
+            merchant_id: 商家 ID
+        """
+        if not self.holiday_repo:
+            raise RuntimeError("Holiday repository not initialized")
+        
+        success = self.holiday_repo.delete(holiday_id, merchant_id)
+        if not success:
+            raise ValueError(f"Holiday not found: {holiday_id}")
 

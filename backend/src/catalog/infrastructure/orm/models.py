@@ -2,7 +2,7 @@
 Catalog Context - Infrastructure Layer - ORM Models
 """
 from sqlalchemy import (
-    Column, String, Integer, Boolean, Numeric, Text, Time,
+    Column, String, Integer, Boolean, Numeric, Text, Time, Date,
     ForeignKey, Index, CheckConstraint, text, JSON
 )
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
@@ -117,5 +117,24 @@ class StaffWorkingHoursORM(Base):
         # 同一員工同一天不可有重複工時
         Index("uq_staff_working_hours_staff_day", "staff_id", "day_of_week", unique=True),
         {"comment": "員工工時表"}
+    )
+
+
+class HolidayORM(Base):
+    """休假日 ORM 模型"""
+    __tablename__ = "holidays"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    merchant_id = Column(UUID(as_uuid=False), nullable=False, index=True)
+    
+    holiday_date = Column(Date, nullable=False, comment="休假日期")
+    name = Column(String(100), nullable=False, comment="休假名稱")
+    is_recurring = Column(Boolean, nullable=False, default=False, comment="是否每年重複")
+    
+    __table_args__ = (
+        Index("idx_holidays_merchant_date", "merchant_id", "holiday_date"),
+        # 同一商家同一日期不可重複設定休假
+        Index("uq_holidays_merchant_date", "merchant_id", "holiday_date", unique=True),
+        {"comment": "休假日表"}
     )
 

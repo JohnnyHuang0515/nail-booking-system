@@ -11,12 +11,8 @@ from decimal import Decimal
 from booking.domain.value_objects import Money, Duration
 
 
-class ServiceCategory(str, Enum):
-    """服務分類"""
-    BASIC = "basic"
-    ADVANCED = "advanced"
-    LUXURY = "luxury"
-    TREATMENT = "treatment"
+# 服務分類現在改為自由文字，商家可自訂
+# 常見分類範例：基礎服務、進階服務、豪華服務、保養護理等
 
 
 @dataclass
@@ -53,7 +49,7 @@ class Service:
         name: str,
         base_price: Money,
         base_duration: Duration,
-        category: ServiceCategory = ServiceCategory.BASIC,
+        category: Optional[str] = None,
         description: Optional[str] = None,
         is_active: bool = True,
         allow_stack: bool = True,  # 是否允許與其他服務堆疊

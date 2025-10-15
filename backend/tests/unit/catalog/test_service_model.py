@@ -5,7 +5,7 @@ Catalog Context - Unit Tests - Service Aggregate
 import pytest
 from decimal import Decimal
 
-from catalog.domain.models import Service, ServiceOption, ServiceCategory
+from catalog.domain.models import Service, ServiceOption
 from booking.domain.value_objects import Money, Duration
 
 
@@ -21,7 +21,7 @@ class TestServiceAggregate:
             name="Gel Basic",
             base_price=Money(Decimal("800"), "TWD"),
             base_duration=Duration(60),
-            category=ServiceCategory.BASIC,
+            category="基礎服務",
             description="基礎凝膠指甲"
         )
         

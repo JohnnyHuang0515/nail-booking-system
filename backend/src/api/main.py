@@ -40,13 +40,31 @@ app.add_middleware(
 
 # === 路由註冊 ===
 
-# Booking Context
+# 註冊路由
+from identity.infrastructure.routers import auth_router
+from api.routers import public_router
+
+# Identity Context - 認證 API
+app.include_router(auth_router.router)
+
+# Public API - 公開查詢（無需認證）
+app.include_router(public_router.router)
+
+# Booking Context - LIFF 客戶端 API
 app.include_router(liff_router.router)
 
-# TODO: 新增其他 Context 的路由
-# app.include_router(merchant_router.router)
+# Merchant API - 商家端
+try:
+    from api.routers import merchant_router
+    app.include_router(merchant_router.router)
+    logger.info("✅ Merchant router loaded")
+except Exception as e:
+    logger.error(f"❌ Failed to load merchant router: {e}")
+    import traceback
+    traceback.print_exc()
+
+# TODO: 新增系統管理員路由
 # app.include_router(admin_router.router)
-# app.include_router(public_router.router)
 
 
 # === 健康檢查 ===

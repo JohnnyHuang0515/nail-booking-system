@@ -61,6 +61,10 @@ def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
     try:
         yield db
+        db.commit()  # 自動提交事務
+    except Exception:
+        db.rollback()  # 發生錯誤時回滾
+        raise
     finally:
         db.close()
 

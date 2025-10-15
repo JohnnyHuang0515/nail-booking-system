@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from sqlalchemy.orm import Session
 from shared.database import SessionLocal
-from catalog.domain.models import Service, ServiceCategory, Staff, StaffWorkingHours, DayOfWeek, ServiceOption
+from catalog.domain.models import Service, Staff, StaffWorkingHours, DayOfWeek, ServiceOption
 from catalog.infrastructure.repositories.sqlalchemy_service_repository import SQLAlchemyServiceRepository
 from catalog.infrastructure.repositories.sqlalchemy_staff_repository import SQLAlchemyStaffRepository
 from merchant.domain.models import Merchant, MerchantStatus
@@ -62,14 +62,14 @@ def seed_catalog_data(db: Session, merchant_id: str):
     
     # === 建立服務 ===
     
-    # 服務 1: 凝膠指甲 Gel Basic
+    # 服務 1: 基礎凝膠指甲
     gel_basic = Service(
         id=1,
         merchant_id=merchant_id,
-        name="凝膠指甲 Gel Basic",
+        name="基礎凝膠指甲",
         base_price=Money(amount=Decimal("800"), currency="TWD"),
         base_duration=Duration(minutes=60),
-        category=ServiceCategory.BASIC,
+        category="基礎服務",
         description="基礎凝膠指甲服務",
         is_active=True,
         allow_stack=True,
@@ -99,24 +99,24 @@ def seed_catalog_data(db: Session, merchant_id: str):
     hand_care = Service(
         id=2,
         merchant_id=merchant_id,
-        name="手部保養 Hand Care",
+        name="手部保養",
         base_price=Money(amount=Decimal("500"), currency="TWD"),
         base_duration=Duration(minutes=45),
-        category=ServiceCategory.TREATMENT,
+        category="保養護理",
         description="深層手部保養護理",
         is_active=True,
         allow_stack=True,
         options=[]
     )
     
-    # 服務 3: 豪華凝膠
+    # 服務 3: 豪華凝膠指甲
     gel_luxury = Service(
         id=3,
         merchant_id=merchant_id,
-        name="豪華凝膠指甲 Gel Luxury",
+        name="豪華凝膠指甲",
         base_price=Money(amount=Decimal("1500"), currency="TWD"),
         base_duration=Duration(minutes=90),
-        category=ServiceCategory.LUXURY,
+        category="豪華服務",
         description="頂級凝膠指甲，含設計",
         is_active=True,
         allow_stack=False,
@@ -143,13 +143,14 @@ def seed_catalog_data(db: Session, merchant_id: str):
         skills=[1, 2, 3],  # 可執行所有服務
         is_active=True,
         working_hours=[
-            # 週一到週六 10:00-18:00
-            StaffWorkingHours(DayOfWeek.MONDAY, time(10, 0), time(18, 0)),
-            StaffWorkingHours(DayOfWeek.TUESDAY, time(10, 0), time(18, 0)),
-            StaffWorkingHours(DayOfWeek.WEDNESDAY, time(10, 0), time(18, 0)),
-            StaffWorkingHours(DayOfWeek.THURSDAY, time(10, 0), time(18, 0)),
-            StaffWorkingHours(DayOfWeek.FRIDAY, time(10, 0), time(18, 0)),
-            StaffWorkingHours(DayOfWeek.SATURDAY, time(10, 0), time(17, 0)),
+            # 週日到週六 全天
+            StaffWorkingHours(DayOfWeek.SUNDAY, time(0, 0), time(23, 59)),
+            StaffWorkingHours(DayOfWeek.MONDAY, time(0, 0), time(23, 59)),
+            StaffWorkingHours(DayOfWeek.TUESDAY, time(0, 0), time(23, 59)),
+            StaffWorkingHours(DayOfWeek.WEDNESDAY, time(0, 0), time(23, 59)),
+            StaffWorkingHours(DayOfWeek.THURSDAY, time(0, 0), time(23, 59)),
+            StaffWorkingHours(DayOfWeek.FRIDAY, time(0, 0), time(23, 59)),
+            StaffWorkingHours(DayOfWeek.SATURDAY, time(0, 0), time(23, 59)),
         ]
     )
     
@@ -163,12 +164,14 @@ def seed_catalog_data(db: Session, merchant_id: str):
         skills=[1, 2],  # 只能執行基礎服務
         is_active=True,
         working_hours=[
-            # 週二到週六 11:00-19:00
-            StaffWorkingHours(DayOfWeek.TUESDAY, time(11, 0), time(19, 0)),
-            StaffWorkingHours(DayOfWeek.WEDNESDAY, time(11, 0), time(19, 0)),
-            StaffWorkingHours(DayOfWeek.THURSDAY, time(11, 0), time(19, 0)),
-            StaffWorkingHours(DayOfWeek.FRIDAY, time(11, 0), time(19, 0)),
-            StaffWorkingHours(DayOfWeek.SATURDAY, time(11, 0), time(18, 0)),
+            # 週日到週六 全天
+            StaffWorkingHours(DayOfWeek.SUNDAY, time(0, 0), time(23, 59)),
+            StaffWorkingHours(DayOfWeek.MONDAY, time(0, 0), time(23, 59)),
+            StaffWorkingHours(DayOfWeek.TUESDAY, time(0, 0), time(23, 59)),
+            StaffWorkingHours(DayOfWeek.WEDNESDAY, time(0, 0), time(23, 59)),
+            StaffWorkingHours(DayOfWeek.THURSDAY, time(0, 0), time(23, 59)),
+            StaffWorkingHours(DayOfWeek.FRIDAY, time(0, 0), time(23, 59)),
+            StaffWorkingHours(DayOfWeek.SATURDAY, time(0, 0), time(23, 59)),
         ]
     )
     

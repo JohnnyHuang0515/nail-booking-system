@@ -8,7 +8,7 @@ import logging
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import select, and_
 
-from catalog.domain.models import Service, ServiceOption, ServiceCategory
+from catalog.domain.models import Service, ServiceOption
 from catalog.domain.repositories import ServiceRepository
 from catalog.infrastructure.orm.models import ServiceORM, ServiceOptionORM
 from booking.domain.value_objects import Money, Duration
@@ -133,7 +133,7 @@ class SQLAlchemyServiceRepository(ServiceRepository):
                 currency=orm.base_price_currency
             ),
             base_duration=Duration(minutes=orm.base_duration_minutes),
-            category=ServiceCategory(orm.category),
+            category=orm.category,
             description=orm.description,
             is_active=orm.is_active,
             allow_stack=orm.allow_stack,
@@ -146,7 +146,7 @@ class SQLAlchemyServiceRepository(ServiceRepository):
             id=domain.id,
             merchant_id=domain.merchant_id,
             name=domain.name,
-            category=domain.category.value,
+            category=domain.category,
             description=domain.description,
             base_price_amount=domain.base_price.amount,
             base_price_currency=domain.base_price.currency,
