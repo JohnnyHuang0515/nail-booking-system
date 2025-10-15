@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Plus, Edit, Trash2, Loader2, UserCog, Phone, Mail, CheckCircle, XCircle } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
@@ -273,6 +273,9 @@ export default function Staff() {
             <DialogTitle>
               {editingStaff ? '編輯美甲師' : '新增美甲師'}
             </DialogTitle>
+            <DialogDescription>
+              {editingStaff ? '修改美甲師的詳細資訊' : '新增新的美甲師到系統中'}
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">

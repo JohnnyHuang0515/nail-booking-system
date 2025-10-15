@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { ChevronLeft, ChevronRight, Plus, Loader2, Clock, User, Phone } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Badge } from '../ui/badge';
 import adminApiService from '../../services/api';
 
@@ -370,6 +370,10 @@ export default function Calendar() {
                   })}
                 </div>
               </div>
+            </DialogTitle>
+            <DialogDescription>
+              查看該時段的預約詳情和客戶資訊
+            </DialogDescription>
               {selectedTimeSlot && selectedTimeSlot.appointments.length > 0 && (
                 <Badge variant="secondary" className="ml-auto">
                   {selectedTimeSlot.appointments.length} 個預約
