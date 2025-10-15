@@ -402,29 +402,6 @@ export default function DateSelectionPage({ onNext, selectedStaffId = 1 }: DateS
           </Card>
         )}
 
-        {/* Legend */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-sm space-y-2">
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 rounded bg-primary"></div>
-                <span>已選擇</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 rounded border-2 border-primary"></div>
-                <span>今日</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 rounded bg-orange-50 border-2 border-orange-400"></div>
-                <span>已預約滿</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 rounded bg-disabled"></div>
-                <span>不可預約</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Next button */}
         <Button 
