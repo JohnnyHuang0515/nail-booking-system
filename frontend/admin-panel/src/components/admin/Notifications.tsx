@@ -49,7 +49,14 @@ export default function Notifications() {
       setLoading(true);
       setError('');
       const templatesData = await adminApiService.getNotificationTemplates();
-      setTemplates(templatesData.templates || templatesData);
+      // 處理不同的資料結構
+      if (Array.isArray(templatesData)) {
+        setTemplates(templatesData);
+      } else if (templatesData && templatesData.templates) {
+        setTemplates(templatesData.templates);
+      } else {
+        setTemplates([]);
+      }
     } catch (err: any) {
       console.error('載入通知模板失敗:', err);
       setError('載入通知模板失敗，請稍後再試');

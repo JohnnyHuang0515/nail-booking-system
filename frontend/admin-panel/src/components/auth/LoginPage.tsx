@@ -33,11 +33,11 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
     try {
       const result = await login(account, password);
       
-      if (result.success) {
+      if (result && result.success) {
         // 登入成功，useAuth hook 會處理狀態更新
         onLoginSuccess(result);
       } else {
-        setError(result.error || '登入失敗');
+        setError(result?.error || '登入失敗');
       }
     } catch (err: any) {
       setError(err.message || '登入失敗，請稍後再試');

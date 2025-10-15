@@ -23,6 +23,10 @@ class AdminApiService {
     this.merchantId = merchantId;
   }
 
+  setAuthToken(token: string): void {
+    this.authToken = token;
+  }
+
   getMerchantId(): string {
     if (!this.merchantId) {
       // 使用預設的商家 ID
