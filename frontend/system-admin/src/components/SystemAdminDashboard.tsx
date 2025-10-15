@@ -5,17 +5,186 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import systemAdminApiService from '../services/api';
-import { 
-  Users, 
-  Building2, 
-  Calendar, 
-  DollarSign, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Search,
-  Loader2 
-} from 'lucide-react';
+
+const styles = {
+  container: {
+    minHeight: '100vh',
+    backgroundColor: '#f9fafb',
+  },
+  header: {
+    backgroundColor: 'white',
+    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+    padding: '24px 0',
+  },
+  headerContent: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '0 16px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: '32px',
+    fontWeight: 'bold',
+    color: '#111827',
+    margin: 0,
+  },
+  subtitle: {
+    fontSize: '16px',
+    color: '#6b7280',
+    margin: '4px 0 0 0',
+  },
+  userInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+  },
+  userName: {
+    fontSize: '14px',
+    color: '#6b7280',
+  },
+  logoutButton: {
+    backgroundColor: '#dc2626',
+    color: 'white',
+    padding: '8px 16px',
+    borderRadius: '6px',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '14px',
+  },
+  main: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '24px 16px',
+  },
+  error: {
+    backgroundColor: '#fef2f2',
+    border: '1px solid #fecaca',
+    color: '#dc2626',
+    padding: '16px',
+    borderRadius: '6px',
+    marginBottom: '24px',
+  },
+  statsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+    gap: '24px',
+    marginBottom: '32px',
+  },
+  statCard: {
+    backgroundColor: 'white',
+    padding: '24px',
+    borderRadius: '8px',
+    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+  },
+  statTitle: {
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#6b7280',
+    marginBottom: '8px',
+  },
+  statValue: {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  merchantsCard: {
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+    padding: '24px',
+  },
+  cardHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '24px',
+  },
+  cardTitle: {
+    fontSize: '18px',
+    fontWeight: '600',
+    color: '#111827',
+    margin: 0,
+  },
+  addButton: {
+    backgroundColor: '#4f46e5',
+    color: 'white',
+    padding: '8px 16px',
+    borderRadius: '6px',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '14px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  searchInput: {
+    width: '100%',
+    padding: '12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    fontSize: '14px',
+    marginBottom: '16px',
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse' as const,
+  },
+  tableHeader: {
+    backgroundColor: '#f9fafb',
+    padding: '12px',
+    textAlign: 'left' as const,
+    fontSize: '12px',
+    fontWeight: '500',
+    color: '#6b7280',
+    textTransform: 'uppercase' as const,
+    borderBottom: '1px solid #e5e7eb',
+  },
+  tableCell: {
+    padding: '12px',
+    fontSize: '14px',
+    color: '#111827',
+    borderBottom: '1px solid #e5e7eb',
+  },
+  statusBadge: {
+    padding: '4px 8px',
+    borderRadius: '4px',
+    fontSize: '12px',
+    fontWeight: '500',
+  },
+  statusActive: {
+    backgroundColor: '#dcfce7',
+    color: '#166534',
+  },
+  statusInactive: {
+    backgroundColor: '#fef2f2',
+    color: '#dc2626',
+  },
+  actionButton: {
+    backgroundColor: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '4px',
+    margin: '0 4px',
+  },
+  loadingContainer: {
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  emptyState: {
+    textAlign: 'center' as const,
+    padding: '32px',
+    color: '#6b7280',
+  },
+};
 
 interface SystemStats {
   total_merchants: number;
@@ -80,9 +249,16 @@ export default function SystemAdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex items-center space-x-2">
-          <Loader2 className="h-6 w-6 animate-spin" />
+      <div style={styles.loadingContainer}>
+        <div style={styles.loadingText}>
+          <div style={{
+            width: '20px',
+            height: '20px',
+            border: '2px solid #e5e7eb',
+            borderTop: '2px solid #4f46e5',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+          }} />
           <span>載入中...</span>
         </div>
       </div>
@@ -90,225 +266,125 @@ export default function SystemAdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div style={styles.container}>
       {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">系統管理後台</h1>
-              <p className="text-gray-600">美甲預約系統管理</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
-                歡迎，{userData?.name}
-              </span>
-              <button
-                onClick={logout}
-                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
-              >
-                登出
-              </button>
-            </div>
+      <header style={styles.header}>
+        <div style={styles.headerContent}>
+          <div>
+            <h1 style={styles.title}>系統管理後台</h1>
+            <p style={styles.subtitle}>美甲預約系統管理</p>
+          </div>
+          <div style={styles.userInfo}>
+            <span style={styles.userName}>
+              歡迎，{userData?.name}
+            </span>
+            <button
+              onClick={logout}
+              style={styles.logoutButton}
+            >
+              登出
+            </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main style={styles.main}>
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          <div style={styles.error}>
             {error}
           </div>
         )}
 
         {/* 系統統計 */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <Building2 className="h-6 w-6 text-gray-400" />
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">
-                        總商家數
-                      </dt>
-                      <dd className="text-lg font-medium text-gray-900">
-                        {stats.total_merchants}
-                      </dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
+          <div style={styles.statsGrid}>
+            <div style={styles.statCard}>
+              <div style={styles.statTitle}>總商家數</div>
+              <div style={styles.statValue}>{stats.total_merchants}</div>
             </div>
-
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <Users className="h-6 w-6 text-green-400" />
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">
-                        活躍商家
-                      </dt>
-                      <dd className="text-lg font-medium text-gray-900">
-                        {stats.active_merchants}
-                      </dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
+            <div style={styles.statCard}>
+              <div style={styles.statTitle}>活躍商家</div>
+              <div style={styles.statValue}>{stats.active_merchants}</div>
             </div>
-
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <Calendar className="h-6 w-6 text-blue-400" />
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">
-                        總預約數
-                      </dt>
-                      <dd className="text-lg font-medium text-gray-900">
-                        {stats.total_bookings}
-                      </dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
+            <div style={styles.statCard}>
+              <div style={styles.statTitle}>總預約數</div>
+              <div style={styles.statValue}>{stats.total_bookings}</div>
             </div>
-
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <DollarSign className="h-6 w-6 text-yellow-400" />
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">
-                        總收入
-                      </dt>
-                      <dd className="text-lg font-medium text-gray-900">
-                        ${stats.total_revenue.toFixed(2)}
-                      </dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
+            <div style={styles.statCard}>
+              <div style={styles.statTitle}>總收入</div>
+              <div style={styles.statValue}>${stats.total_revenue.toFixed(2)}</div>
             </div>
           </div>
         )}
 
         {/* 商家管理 */}
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
-                商家管理
-              </h3>
-              <button className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center">
-                <Plus className="h-4 w-4 mr-2" />
-                新增商家
-              </button>
-            </div>
-
-            {/* 搜尋 */}
-            <div className="mb-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="搜尋商家..."
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* 商家列表 */}
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      商家名稱
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      聯絡信箱
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      狀態
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      預約數
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      收入
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      操作
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredMerchants.map((merchant) => (
-                    <tr key={merchant.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {merchant.name}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {merchant.slug}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {merchant.email}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          merchant.is_active 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {merchant.is_active ? '啟用' : '停用'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {merchant.total_bookings}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ${merchant.total_revenue.toFixed(2)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
-                          <button className="text-indigo-600 hover:text-indigo-900">
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button className="text-red-600 hover:text-red-900">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {filteredMerchants.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                沒有找到商家
-              </div>
-            )}
+        <div style={styles.merchantsCard}>
+          <div style={styles.cardHeader}>
+            <h3 style={styles.cardTitle}>商家管理</h3>
+            <button style={styles.addButton}>
+              + 新增商家
+            </button>
           </div>
+
+          {/* 搜尋 */}
+          <input
+            type="text"
+            placeholder="搜尋商家..."
+            style={styles.searchInput}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+
+          {/* 商家列表 */}
+          <div style={{ overflowX: 'auto' }}>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.tableHeader}>商家名稱</th>
+                  <th style={styles.tableHeader}>聯絡信箱</th>
+                  <th style={styles.tableHeader}>狀態</th>
+                  <th style={styles.tableHeader}>預約數</th>
+                  <th style={styles.tableHeader}>收入</th>
+                  <th style={styles.tableHeader}>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredMerchants.map((merchant) => (
+                  <tr key={merchant.id}>
+                    <td style={styles.tableCell}>
+                      <div style={{ fontWeight: '500' }}>
+                        {merchant.name}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                        {merchant.slug}
+                      </div>
+                    </td>
+                    <td style={styles.tableCell}>{merchant.email}</td>
+                    <td style={styles.tableCell}>
+                      <span style={{
+                        ...styles.statusBadge,
+                        ...(merchant.is_active ? styles.statusActive : styles.statusInactive),
+                      }}>
+                        {merchant.is_active ? '啟用' : '停用'}
+                      </span>
+                    </td>
+                    <td style={styles.tableCell}>{merchant.total_bookings}</td>
+                    <td style={styles.tableCell}>${merchant.total_revenue.toFixed(2)}</td>
+                    <td style={styles.tableCell}>
+                      <button style={styles.actionButton}>編輯</button>
+                      <button style={styles.actionButton}>刪除</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {filteredMerchants.length === 0 && (
+            <div style={styles.emptyState}>
+              沒有找到商家
+            </div>
+          )}
         </div>
       </main>
     </div>

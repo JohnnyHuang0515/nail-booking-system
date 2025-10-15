@@ -5,6 +5,85 @@
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 
+const styles = {
+  container: {
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f9fafb',
+    padding: '48px 16px',
+  },
+  formContainer: {
+    maxWidth: '400px',
+    width: '100%',
+    padding: '32px',
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+  },
+  title: {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    textAlign: 'center' as const,
+    color: '#111827',
+    marginBottom: '8px',
+  },
+  subtitle: {
+    fontSize: '14px',
+    textAlign: 'center' as const,
+    color: '#6b7280',
+    marginBottom: '32px',
+  },
+  input: {
+    width: '100%',
+    padding: '12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    fontSize: '14px',
+    marginBottom: '16px',
+    boxSizing: 'border-box' as const,
+  },
+  button: {
+    width: '100%',
+    padding: '12px',
+    backgroundColor: '#4f46e5',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    marginBottom: '16px',
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+    cursor: 'not-allowed',
+  },
+  error: {
+    color: '#dc2626',
+    fontSize: '14px',
+    textAlign: 'center' as const,
+    marginBottom: '16px',
+  },
+  testInfo: {
+    padding: '16px',
+    backgroundColor: '#eff6ff',
+    border: '1px solid #bfdbfe',
+    borderRadius: '6px',
+    fontSize: '12px',
+  },
+  testTitle: {
+    fontWeight: '500',
+    color: '#1e40af',
+    marginBottom: '8px',
+  },
+  testText: {
+    color: '#1e40af',
+    margin: '4px 0',
+  },
+};
+
 export default function LoginPage() {
   const [account, setAccount] = useState('');
   const [password, setPassword] = useState('');
@@ -34,72 +113,55 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            系統管理員登入
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            美甲預約系統管理後台
-          </p>
-        </div>
+    <div style={styles.container}>
+      <div style={styles.formContainer}>
+        <h2 style={styles.title}>
+          系統管理員登入
+        </h2>
+        <p style={styles.subtitle}>
+          美甲預約系統管理後台
+        </p>
         
-        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="account" className="sr-only">
-                帳號
-              </label>
-              <input
-                id="account"
-                name="account"
-                type="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="管理員帳號"
-                value={account}
-                onChange={(e) => setAccount(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                密碼
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="密碼"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-          </div>
+        <form onSubmit={handleLogin}>
+          <input
+            type="email"
+            placeholder="管理員帳號"
+            value={account}
+            onChange={(e) => setAccount(e.target.value)}
+            style={styles.input}
+            required
+          />
+          <input
+            type="password"
+            placeholder="密碼"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={styles.input}
+            required
+          />
 
           {error && (
-            <div className="text-red-600 text-sm text-center">
+            <div style={styles.error}>
               {error}
             </div>
           )}
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-            >
-              {loading ? '登入中...' : '登入'}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              ...styles.button,
+              ...(loading ? styles.buttonDisabled : {}),
+            }}
+          >
+            {loading ? '登入中...' : '登入'}
+          </button>
 
           {/* 測試帳號資訊 */}
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
-            <h3 className="text-sm font-medium text-blue-800 mb-2">測試帳號</h3>
-            <p className="text-xs text-blue-600">帳號：system@nailbooking.com</p>
-            <p className="text-xs text-blue-600">密碼：system123</p>
+          <div style={styles.testInfo}>
+            <h3 style={styles.testTitle}>測試帳號</h3>
+            <p style={styles.testText}>帳號：system@nailbooking.com</p>
+            <p style={styles.testText}>密碼：system123</p>
           </div>
         </form>
       </div>
