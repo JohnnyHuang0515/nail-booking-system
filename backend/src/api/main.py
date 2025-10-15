@@ -2,11 +2,20 @@
 API Gateway - FastAPI Main Application
 BFF (Backend for Frontend) 主入口
 """
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import logging
+import sys
+from pathlib import Path
+
+# 添加 src 目錄到 Python 路徑
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from shared.database import SessionLocal
+from identity.infrastructure.repositories.sqlalchemy_user_repository import SQLAlchemyUserRepository
+from identity.application.services import PasswordService
 
 # 建立 FastAPI 應用
 app = FastAPI(
@@ -43,42 +52,63 @@ class LoginResponse(BaseModel):
     user: dict = None
     message: str = None
 
+# === 資料庫依賴 ===
+
+def get_db():
+    """獲取資料庫會話"""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 # === 認證端點 ===
 
 @app.post("/api/v1/auth/login", response_model=LoginResponse, tags=["Authentication"])
-async def login(request: LoginRequest):
-    """系統管理員登入"""
-    # 暫時的硬編碼認證（用於測試）
-    if request.email == "system@nailbooking.com" and request.password == "system123":
-        return LoginResponse(
-            success=True,
-            token="mock-jwt-token-for-system-admin",
-            user={
-                "id": "system-admin-001",
-                "email": "system@nailbooking.com",
-                "name": "系統管理員",
-                "role": "ADMIN"
-            },
-            message="登入成功"
-        )
-    elif request.email == "merchant@nailbooking.com" and request.password == "admin123":
-        return LoginResponse(
-            success=True,
-            token="mock-jwt-token-for-merchant-admin",
-            user={
-                "id": "merchant-admin-001",
-                "email": "merchant@nailbooking.com",
-                "name": "商家管理員",
-                "role": "MERCHANT_OWNER",
-                "merchant_id": "00000000-0000-0000-0000-000000000001"
-            },
-            message="登入成功"
-        )
-    else:
+async def login(request: LoginRequest, db = Depends(get_db)):
+    """用戶登入"""
+    user_repo = SQLAlchemyUserRepository(db)
+    
+    # 查找用戶
+    user = user_repo.find_by_email(request.email)
+    if not user:
         raise HTTPException(
             status_code=401,
             detail="帳號或密碼錯誤"
         )
+    
+    # 驗證密碼
+    if not PasswordService.verify_password(request.password, user.password_hash):
+        raise HTTPException(
+            status_code=401,
+            detail="帳號或密碼錯誤"
+        )
+    
+    # 檢查用戶是否啟用
+    if not user.is_active:
+        raise HTTPException(
+            status_code=401,
+            detail="帳號已被停用"
+        )
+    
+    # 生成響應
+    user_data = {
+        "id": user.id,
+        "email": user.email,
+        "name": user.name,
+        "role": user.role.name.value
+    }
+    
+    # 如果是商家用戶，添加 merchant_id
+    if user.merchant_id:
+        user_data["merchant_id"] = user.merchant_id
+    
+    return LoginResponse(
+        success=True,
+        token=f"jwt-token-{user.id}",  # 簡化的 token
+        user=user_data,
+        message="登入成功"
+    )
 
 @app.get("/api/v1/auth/me", tags=["Authentication"])
 async def get_current_user():
