@@ -3,7 +3,7 @@ Billing Context - Application Layer - Services
 BillingService 協調訂閱與計費邏輯
 """
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 
 from billing.domain.models import Subscription, Plan, SubscriptionStatus, PlanTier
 from billing.domain.repositories import SubscriptionRepository, PlanRepository
@@ -134,7 +134,7 @@ class BillingService:
         # 建立訂閱
         from uuid import uuid4
         
-        now = datetime.now(datetime.timezone.utc)
+        now = datetime.now(dt_timezone.utc)
         trial_end = now + timedelta(days=trial_days)
         
         subscription = Subscription(
