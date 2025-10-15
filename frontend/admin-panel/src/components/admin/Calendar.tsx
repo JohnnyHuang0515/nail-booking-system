@@ -370,16 +370,15 @@ export default function Calendar() {
                   })}
                 </div>
               </div>
-            </DialogTitle>
-            <DialogDescription>
-              查看該時段的預約詳情和客戶資訊
-            </DialogDescription>
               {selectedTimeSlot && selectedTimeSlot.appointments.length > 0 && (
                 <Badge variant="secondary" className="ml-auto">
                   {selectedTimeSlot.appointments.length} 個預約
                 </Badge>
               )}
             </DialogTitle>
+            <DialogDescription>
+              查看該時段的預約詳情和客戶資訊
+            </DialogDescription>
           </DialogHeader>
           
           <div className="flex-1 overflow-y-auto py-4 space-y-3">
