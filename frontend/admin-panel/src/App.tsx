@@ -9,16 +9,16 @@ import Schedule from './components/admin/Schedule';
 import Services from './components/admin/Services';
 import Staff from './components/admin/Staff';
 import Customers from './components/admin/Customers';
+import Billing from './components/admin/Billing';
+import Notifications from './components/admin/Notifications';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const { isAuthenticated, merchantData, loading, login, logout } = useAuth();
 
-  const handleLoginSuccess = (merchant: any) => {
-    const token = localStorage.getItem('merchant_token');
-    if (token) {
-      login(merchant, token);
-    }
+  const handleLoginSuccess = (result: any) => {
+    // useAuth hook 已經處理了登入狀態，這裡不需要額外處理
+    console.log('Login successful:', result);
   };
 
   const renderPage = () => {
@@ -37,6 +37,10 @@ export default function App() {
         return <Staff />;
       case 'customers':
         return <Customers />;
+      case 'billing':
+        return <Billing />;
+      case 'notifications':
+        return <Notifications />;
       default:
         return <Dashboard onPageChange={setCurrentPage} />;
     }

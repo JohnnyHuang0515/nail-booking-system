@@ -326,6 +326,118 @@ class AdminApiService {
       method: 'DELETE',
     });
   }
+
+  // ========== Billing API ==========
+
+  async getPlans(): Promise<any[]> {
+    return this.request<any[]>('/billing/plans');
+  }
+
+  async getPlan(planId: number): Promise<any> {
+    return this.request<any>(`/billing/plans/${planId}`);
+  }
+
+  async getSubscriptionStatus(): Promise<any> {
+    if (!this.merchantId) {
+      throw new Error('Merchant ID not set');
+    }
+    return this.request<any>(`/billing/merchants/${this.merchantId}/subscription/status`);
+  }
+
+  async getSubscription(): Promise<any> {
+    if (!this.merchantId) {
+      throw new Error('Merchant ID not set');
+    }
+    return this.request<any>(`/billing/merchants/${this.merchantId}/subscription`);
+  }
+
+  async createSubscription(planId: number, trialDays: number = 14): Promise<any> {
+    if (!this.merchantId) {
+      throw new Error('Merchant ID not set');
+    }
+    return this.request<any>('/billing/subscriptions', {
+      method: 'POST',
+      body: JSON.stringify({
+        merchant_id: this.merchantId,
+        plan_id: planId,
+        trial_days: trialDays
+      })
+    });
+  }
+
+  async activateSubscription(subscriptionId: string): Promise<any> {
+    return this.request<any>(`/billing/subscriptions/${subscriptionId}/activate`, {
+      method: 'POST'
+    });
+  }
+
+  async cancelSubscription(subscriptionId: string): Promise<any> {
+    return this.request<any>(`/billing/subscriptions/${subscriptionId}/cancel`, {
+      method: 'POST'
+    });
+  }
+
+  // ========== Auth API ==========
+
+  async login(email: string, password: string): Promise<any> {
+    return this.request<any>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
+    });
+  }
+
+  async register(userData: {
+    email: string;
+    password: string;
+    name: string;
+    merchant_id?: string;
+  }): Promise<any> {
+    return this.request<any>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData)
+    });
+  }
+
+  async getCurrentUser(): Promise<any> {
+    return this.request<any>('/auth/me');
+  }
+
+  // ========== Notification API ==========
+
+  async getNotificationTemplates(): Promise<any[]> {
+    return this.request<any[]>('/notifications/templates');
+  }
+
+  async sendNotification(request: {
+    recipient: string;
+    notification_type: string;
+    variables: Record<string, any>;
+  }): Promise<any> {
+    if (!this.merchantId) {
+      throw new Error('Merchant ID not set');
+    }
+    return this.request<any>('/notifications/send', {
+      method: 'POST',
+      body: JSON.stringify({
+        merchant_id: this.merchantId,
+        ...request
+      })
+    });
+  }
+
+  async testNotification(recipient: string, message: string): Promise<any> {
+    if (!this.merchantId) {
+      throw new Error('Merchant ID not set');
+    }
+    return this.request<any>('/notifications/test', {
+      method: 'POST',
+      body: JSON.stringify({
+        merchant_id: this.merchantId,
+        recipient,
+        message
+      })
+    });
+  }
 }
 
 export const adminApiService = new AdminApiService();

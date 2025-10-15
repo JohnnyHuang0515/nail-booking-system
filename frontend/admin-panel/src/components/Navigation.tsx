@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Home, Clock, Users, Sparkles, UserCircle, LogOut, ChevronDown, UserCog, Menu, X } from 'lucide-react';
+import { Calendar, Home, Clock, Users, Sparkles, UserCircle, LogOut, ChevronDown, UserCog, Menu, X, CreditCard, Bell } from 'lucide-react';
 
 interface MerchantData {
   id: string;
@@ -37,6 +37,8 @@ export default function Navigation({
     { id: 'services', name: '服務管理', icon: Sparkles, path: '/services' },
     { id: 'staff', name: '美甲師管理', icon: UserCog, path: '/staff' },
     { id: 'customers', name: '顧客管理', icon: Users, path: '/customers' },
+    { id: 'billing', name: '計費管理', icon: CreditCard, path: '/billing' },
+    { id: 'notifications', name: '通知管理', icon: Bell, path: '/notifications' },
   ];
 
   if (!isAdmin) return null;
