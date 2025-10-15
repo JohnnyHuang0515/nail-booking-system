@@ -32,6 +32,8 @@ const styles = {
 function App() {
   const { isAuthenticated, loading } = useAuth();
 
+  console.log('🔄 App 渲染狀態:', { isAuthenticated, loading });
+
   if (loading) {
     return (
       <div style={styles.container}>
@@ -42,6 +44,8 @@ function App() {
       </div>
     );
   }
+
+  console.log('🎯 渲染組件:', isAuthenticated ? 'SystemAdminDashboard' : 'LoginPage');
 
   return (
     <div>

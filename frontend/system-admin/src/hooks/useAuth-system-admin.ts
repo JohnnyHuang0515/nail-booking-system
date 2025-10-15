@@ -20,8 +20,12 @@ export function useAuth() {
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('🔐 開始登入...', { email });
       const response = await systemAdminApiService.login(email, password);
+      console.log('📡 後端響應:', response);
+      
       if (response.token) {
+        console.log('✅ 登入成功，設置認證狀態...');
         localStorage.setItem('system_admin_token', response.token);
         localStorage.setItem('system_admin_user', JSON.stringify(response.user));
         
@@ -30,12 +34,15 @@ export function useAuth() {
         setUserData(response.user);
         setIsAuthenticated(true);
         
+        console.log('🎉 認證狀態已更新:', { isAuthenticated: true, user: response.user });
+        
         return { success: true, user: response.user };
       } else {
+        console.log('❌ 登入失敗：沒有 token');
         return { success: false, error: '登入失敗' };
       }
     } catch (error: any) {
-      console.error('Login failed:', error);
+      console.error('❌ 登入失敗:', error);
       return { success: false, error: error.message || '登入失敗' };
     }
   };
