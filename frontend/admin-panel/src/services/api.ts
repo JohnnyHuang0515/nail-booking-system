@@ -14,6 +14,7 @@ interface CalendarAppointment {
 class AdminApiService {
   private baseURL: string;
   private merchantId: string | null = null;
+  private authToken: string | null = null;
 
   constructor() {
     this.baseURL = API_BASE_URL;

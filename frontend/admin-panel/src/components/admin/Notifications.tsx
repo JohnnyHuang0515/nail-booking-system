@@ -48,7 +48,7 @@ export default function Notifications() {
     try {
       setLoading(true);
       setError('');
-      const templatesData = await adminApiService.getNotificationTemplates();
+      const templatesData: any = await adminApiService.getNotificationTemplates();
       // 處理不同的資料結構
       if (Array.isArray(templatesData)) {
         setTemplates(templatesData);
