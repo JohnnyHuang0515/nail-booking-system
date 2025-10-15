@@ -22,12 +22,12 @@ def check_users():
         
         # 查詢特定商家的用戶
         merchant_id = "00000000-0000-0000-0000-000000000001"
-        users = user_repo.find_by_merchant(merchant_id)
+        merchant_users = user_repo.find_by_merchant(merchant_id)
         
-        print(f"✅ 找到商家 {merchant_id} 的 {len(users)} 個用戶：")
+        print(f"✅ 找到商家 {merchant_id} 的 {len(merchant_users)} 個用戶：")
         print()
         
-        for user in users:
+        for user in merchant_users:
             print(f"📧 帳號: {user.email}")
             print(f"👤 姓名: {user.name}")
             print(f"🔑 角色: {user.role.name.value}")
@@ -38,11 +38,18 @@ def check_users():
         
         # 檢查特定帳號
         admin_user = user_repo.find_by_email("admin@nailbooking.com")
+        system_admin = user_repo.find_by_email("system@nailbooking.com")
+        
+        print("🎯 測試帳號確認：")
         if admin_user:
-            print("🎯 測試帳號確認：")
-            print(f"   帳號: {admin_user.email}")
+            print(f"   商家管理員帳號: {admin_user.email}")
             print(f"   密碼: admin123")
             print(f"   角色: {admin_user.role.name.value}")
+        
+        if system_admin:
+            print(f"   系統管理員帳號: {system_admin.email}")
+            print(f"   密碼: system123")
+            print(f"   角色: {system_admin.role.name.value}")
         
     except Exception as e:
         print(f"❌ 檢查失敗: {e}")
