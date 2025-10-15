@@ -3,8 +3,9 @@ Catalog Context - Domain Layer - Repository Interfaces
 """
 from abc import ABC, abstractmethod
 from typing import Optional
+from datetime import date
 
-from .models import Service, Staff
+from .models import Service, Staff, StaffHoliday
 
 
 class ServiceRepository(ABC):
@@ -62,5 +63,33 @@ class StaffRepository(ABC):
     @abstractmethod
     def delete(self, staff_id: int, merchant_id: str) -> bool:
         """刪除員工"""
+        pass
+    
+    # ========== Staff Holiday Management ==========
+    
+    @abstractmethod
+    def save_staff_holiday(self, holiday: StaffHoliday) -> StaffHoliday:
+        """儲存美甲師休假"""
+        pass
+    
+    @abstractmethod
+    def find_staff_holidays(
+        self,
+        merchant_id: str,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
+        staff_id: Optional[int] = None
+    ) -> list[StaffHoliday]:
+        """查詢美甲師休假"""
+        pass
+    
+    @abstractmethod
+    def find_staff_holiday_by_id(self, holiday_id: int, merchant_id: str) -> Optional[StaffHoliday]:
+        """根據 ID 查詢美甲師休假"""
+        pass
+    
+    @abstractmethod
+    def delete_staff_holiday(self, holiday_id: int, merchant_id: str) -> bool:
+        """刪除美甲師休假"""
         pass
 

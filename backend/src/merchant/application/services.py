@@ -46,6 +46,21 @@ class MerchantService:
         
         return merchant
     
+    def get_merchant_by_id(self, merchant_id: str) -> Merchant:
+        """
+        依 ID 取得商家（別名方法）
+        
+        Args:
+            merchant_id: 商家 ID
+        
+        Returns:
+            商家聚合
+        
+        Raises:
+            MerchantNotFoundError: 商家不存在
+        """
+        return self.get_merchant(merchant_id)
+    
     def get_merchant_by_slug(self, slug: str) -> Merchant:
         """
         依 slug 取得商家

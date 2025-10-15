@@ -2,7 +2,7 @@
 Catalog Context - Infrastructure Layer - Staff Repository
 """
 from typing import Optional
-from datetime import time
+from datetime import time, date
 import logging
 
 from sqlalchemy.orm import Session, joinedload
@@ -103,6 +103,170 @@ class SQLAlchemyStaffRepository(StaffRepository):
         self.session.delete(orm_staff)
         self.session.flush()
         return True
+    
+    def clear_working_hours(self, staff_id: int) -> None:
+        """清除員工的所有工時設定"""
+        stmt = select(StaffWorkingHoursORM).where(
+            StaffWorkingHoursORM.staff_id == staff_id
+        )
+        
+        orm_hours = self.session.scalars(stmt).all()
+        for orm_hour in orm_hours:
+            self.session.delete(orm_hour)
+        
+        self.session.flush()
+    
+    def add_working_hours(self, staff_id: int, day_of_week: int, start_time: str, end_time: str) -> None:
+        """新增員工工時"""
+        from datetime import time, date
+        
+        orm_hour = StaffWorkingHoursORM(
+            staff_id=staff_id,
+            day_of_week=day_of_week,
+            start_time=time.fromisoformat(start_time),
+            end_time=time.fromisoformat(end_time)
+        )
+        
+        self.session.add(orm_hour)
+        self.session.flush()
+    
+    # ========== Staff Holiday Management ==========
+    
+    def save_staff_holiday(self, holiday: 'StaffHoliday') -> 'StaffHoliday':
+        """儲存美甲師休假"""
+        from catalog.domain.models import StaffHoliday
+        from catalog.infrastructure.orm.models import StaffHolidayORM
+        
+        existing = self.session.get(StaffHolidayORM, holiday.id) if holiday.id else None
+        
+        if existing:
+            self._update_holiday_orm_from_domain(existing, holiday)
+        else:
+            orm_holiday = self._holiday_domain_to_orm(holiday)
+            self.session.add(orm_holiday)
+            self.session.flush()
+            holiday.id = orm_holiday.id
+        
+        # 載入美甲師名稱
+        staff = self.session.get(StaffORM, holiday.staff_id)
+        if staff:
+            holiday.staff_name = staff.name
+        
+        return holiday
+    
+    def find_staff_holidays(
+        self,
+        merchant_id: str,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
+        staff_id: Optional[int] = None
+    ) -> list['StaffHoliday']:
+        """查詢美甲師休假"""
+        from catalog.domain.models import StaffHoliday
+        from catalog.infrastructure.orm.models import StaffHolidayORM
+        
+        stmt = select(StaffHolidayORM).options(
+            joinedload(StaffHolidayORM.staff)
+        ).where(StaffHolidayORM.merchant_id == merchant_id)
+        
+        if start_date:
+            stmt = stmt.where(StaffHolidayORM.holiday_date >= start_date)
+        if end_date:
+            stmt = stmt.where(StaffHolidayORM.holiday_date <= end_date)
+        if staff_id:
+            stmt = stmt.where(StaffHolidayORM.staff_id == staff_id)
+        
+        stmt = stmt.order_by(StaffHolidayORM.holiday_date)
+        
+        orm_holidays = self.session.scalars(stmt).all()
+        holidays = []
+        
+        for orm_holiday in orm_holidays:
+            holiday = self._holiday_orm_to_domain(orm_holiday)
+            holidays.append(holiday)
+        
+        return holidays
+    
+    def find_staff_holiday_by_id(self, holiday_id: int, merchant_id: str) -> Optional['StaffHoliday']:
+        """根據 ID 查詢美甲師休假"""
+        from catalog.domain.models import StaffHoliday
+        from catalog.infrastructure.orm.models import StaffHolidayORM
+        
+        stmt = select(StaffHolidayORM).options(
+            joinedload(StaffHolidayORM.staff)
+        ).where(
+            and_(
+                StaffHolidayORM.id == holiday_id,
+                StaffHolidayORM.merchant_id == merchant_id
+            )
+        )
+        
+        orm_holiday = self.session.scalar(stmt)
+        
+        if not orm_holiday:
+            return None
+        
+        return self._holiday_orm_to_domain(orm_holiday)
+    
+    def delete_staff_holiday(self, holiday_id: int, merchant_id: str) -> bool:
+        """刪除美甲師休假"""
+        from catalog.infrastructure.orm.models import StaffHolidayORM
+        
+        stmt = select(StaffHolidayORM).where(
+            and_(
+                StaffHolidayORM.id == holiday_id,
+                StaffHolidayORM.merchant_id == merchant_id
+            )
+        )
+        
+        orm_holiday = self.session.scalar(stmt)
+        
+        if not orm_holiday:
+            return False
+        
+        self.session.delete(orm_holiday)
+        self.session.flush()
+        return True
+    
+    # === Holiday ORM ↔ Domain 轉換 ===
+    
+    def _holiday_orm_to_domain(self, orm: 'StaffHolidayORM') -> 'StaffHoliday':
+        """休假 ORM → Domain"""
+        from catalog.domain.models import StaffHoliday
+        
+        holiday = StaffHoliday(
+            id=orm.id,
+            staff_id=orm.staff_id,
+            merchant_id=orm.merchant_id,
+            holiday_date=orm.holiday_date,
+            name=orm.name,
+            is_recurring=orm.is_recurring
+        )
+        
+        # 設定美甲師名稱
+        if orm.staff:
+            holiday.staff_name = orm.staff.name
+        
+        return holiday
+    
+    def _holiday_domain_to_orm(self, domain: 'StaffHoliday') -> 'StaffHolidayORM':
+        """休假 Domain → ORM"""
+        from catalog.infrastructure.orm.models import StaffHolidayORM
+        
+        return StaffHolidayORM(
+            id=domain.id,
+            staff_id=domain.staff_id,
+            merchant_id=domain.merchant_id,
+            holiday_date=domain.holiday_date,
+            name=domain.name,
+            is_recurring=domain.is_recurring
+        )
+    
+    def _update_holiday_orm_from_domain(self, orm: 'StaffHolidayORM', domain: 'StaffHoliday'):
+        """更新休假 ORM"""
+        orm.holiday_date = domain.holiday_date
+        orm.name = domain.name
+        orm.is_recurring = domain.is_recurring
     
     # === ORM ↔ Domain 轉換 ===
     

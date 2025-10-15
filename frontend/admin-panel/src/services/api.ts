@@ -1,26 +1,5 @@
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
-interface Appointment {
-  id: string;
-  merchant_id: string;
-  user_id?: string;
-  service_id: string;
-  appointment_date: string;
-  appointment_time: string;
-  status: string;
-  customer_name?: string;
-  customer_phone?: string;
-  customer_email?: string;
-  notes?: string;
-  created_at: string;
-  service?: {
-    id: string;
-    name: string;
-    price: number;
-    duration_minutes: number;
-  };
-}
-
 interface CalendarAppointment {
   id: string;
   time: string;
@@ -55,18 +34,29 @@ class AdminApiService {
     return this.merchantId;
   }
 
+  private getAuthToken(): string | null {
+    return localStorage.getItem('merchant_token');
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     
+    const token = this.getAuthToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(options.headers as Record<string, string> || {}),
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
       ...options,
+      headers,
     };
 
     try {
@@ -102,105 +92,144 @@ class AdminApiService {
   }
 
   // 獲取指定日期範圍的預約（原始格式）
-  async getAppointments(startDate?: string, endDate?: string): Promise<Appointment[]> {
-    const merchantId = this.getMerchantId();
+  async getAppointments(startDate?: string, endDate?: string): Promise<any[]> {
+    // 使用新的 /merchant/bookings 端點
+    const bookings = await this.getBookings(startDate, endDate);
     
-    // 如果沒有提供日期範圍，使用當前月份
-    let url = `/api/v1/appointments?merchant_id=${merchantId}`;
-    if (startDate && endDate) {
-      url += `&start_date=${startDate}&end_date=${endDate}`;
-    } else {
-      // 使用當前月份作為預設範圍
-      const now = new Date();
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      url += `&start_date=${start.toISOString().split('T')[0]}&end_date=${end.toISOString().split('T')[0]}`;
-    }
-    
-    const response = await this.request<Appointment[]>(url);
-    return response;
+    // 轉換為前端期望的格式
+    return bookings.map(booking => ({
+      id: booking.id,
+      merchant_id: booking.merchant_id,
+      user_id: booking.customer?.line_user_id,
+      service_id: booking.items[0]?.service_id || null,
+      appointment_date: booking.start_at.split('T')[0], // "2025-10-15"
+      appointment_time: booking.start_at.split('T')[1].substring(0, 5), // "12:00"
+      status: booking.status,
+      customer_name: booking.customer?.name || '未知客戶',
+      customer_phone: booking.customer?.phone || '',
+      customer_email: booking.customer?.email || '',
+      notes: booking.notes || '',
+      created_at: booking.created_at,
+      service: booking.items[0] ? {
+        id: booking.items[0].service_id,
+        name: booking.items[0].service_name,
+        price: booking.items[0].service_price,
+        duration_minutes: booking.items[0].service_duration
+      } : null
+    }));
   }
 
   // 獲取指定日期範圍的預約（行事曆格式）
   async getCalendarAppointments(startDate?: string, endDate?: string): Promise<CalendarAppointment[]> {
-    const merchantId = this.getMerchantId();
-    
-    // 如果沒有提供日期範圍，使用當前月份
-    let url = `/api/v1/appointments?merchant_id=${merchantId}`;
-    if (startDate && endDate) {
-      url += `&start_date=${startDate}&end_date=${endDate}`;
-    } else {
-      // 使用當前月份作為預設範圍
-      const now = new Date();
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      url += `&start_date=${start.toISOString().split('T')[0]}&end_date=${end.toISOString().split('T')[0]}`;
-    }
-    
-    const response = await this.request<Appointment[]>(url);
+    // 使用新的 /merchant/bookings 端點
+    const bookings = await this.getBookings(startDate, endDate);
     
     // 轉換為行事曆格式
-    const result = response.map(apt => ({
-      id: apt.id,
-      time: apt.appointment_time.substring(0, 5), // 只取 HH:MM
-      service: apt.service?.name || '未知服務',
-      customer: apt.customer_name || '未知顧客',
-      status: apt.status,
-      customer_phone: apt.customer_phone,
-      notes: apt.notes,
-      appointment_date: apt.appointment_date // 保留日期用於分組
+    return bookings.map(booking => ({
+      id: booking.id,
+      time: booking.start_at.split('T')[1].substring(0, 5), // "12:00"
+      service: booking.items.map((item: any) => item.service_name).join(', '),
+      customer: booking.customer?.name || '未知顧客',
+      status: booking.status,
+      customer_phone: booking.customer?.phone,
+      notes: booking.notes,
+      appointment_date: booking.start_at.split('T')[0], // "2025-10-15"
+      staff_id: booking.staff_id  // 美甲師ID
     }));
-    
-    return result;
   }
 
   // 預約管理 API
-  async getAppointments(startDate?: string, endDate?: string) {
-    const today = new Date().toISOString().split('T')[0];
-    const defaultEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const merchantId = '00000000-0000-0000-0000-000000000001'; // 測試商家 ID
-    const params = new URLSearchParams({
-      merchant_id: merchantId,
-      start_date: startDate || today,
-      end_date: endDate || defaultEndDate
-    });
-    return this.request(`/api/v1/appointments?${params}`);
+  async getBookings(startDate?: string, endDate?: string, staffId?: number, status?: string): Promise<any[]> {
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    if (staffId) params.append('staff_id', staffId.toString());
+    if (status) params.append('status', status);
+    
+    const query = params.toString();
+    return this.request<any[]>(`/merchant/bookings${query ? '?' + query : ''}`);
   }
 
-  // 創建預約
+  // 創建預約（暫時使用LIFF端點）
   async createAppointment(appointmentData: any): Promise<any> {
-    const merchantId = this.getMerchantId();
-    return await this.request(`/api/v1/bookings?merchant_id=${merchantId}`, {
+    // 轉換為後端期望的格式
+    const bookingRequest = {
+      merchant_id: this.getMerchantId(),
+      customer: {
+        name: appointmentData.customer_name,
+        phone: appointmentData.customer_phone,
+        email: appointmentData.customer_email || undefined
+      },
+      staff_id: appointmentData.staff_id || 1,
+      start_at: `${appointmentData.appointment_date}T${appointmentData.appointment_time}:00+08:00`,
+      items: [{
+        service_id: parseInt(appointmentData.service_id),
+        option_ids: []
+      }],
+      notes: appointmentData.notes || undefined
+    };
+    
+    return await this.request('/liff/bookings', {
       method: 'POST',
-      body: JSON.stringify(appointmentData),
+      body: JSON.stringify(bookingRequest),
     });
   }
 
   // 更新預約
   async updateAppointment(appointmentId: string, appointmentData: any): Promise<any> {
-    const merchantId = this.getMerchantId();
-    return await this.request(`/api/v1/appointments/${appointmentId}?merchant_id=${merchantId}`, {
+    return this.request(`/merchant/bookings/${appointmentId}`, {
       method: 'PUT',
       body: JSON.stringify(appointmentData),
     });
   }
 
   // 刪除預約
-  async deleteAppointment(appointmentId: string): Promise<any> {
-    const merchantId = this.getMerchantId();
-    return await this.request(`/api/v1/appointments/${appointmentId}?merchant_id=${merchantId}`, {
+  async deleteAppointment(appointmentId: string): Promise<void> {
+    await this.request(`/merchant/bookings/${appointmentId}`, {
       method: 'DELETE',
+    });
+  }
+
+  // Business Hours API
+  async getBusinessHours(): Promise<any> {
+    return this.request('/merchant/business-hours');
+  }
+
+  async updateBusinessHours(businessHours: {
+    monday: boolean;
+    tuesday: boolean;
+    wednesday: boolean;
+    thursday: boolean;
+    friday: boolean;
+    saturday: boolean;
+    sunday: boolean;
+  }): Promise<any> {
+    return this.request('/merchant/business-hours', {
+      method: 'PUT',
+      body: JSON.stringify(businessHours),
     });
   }
 
   // 服務管理 API
   async getServices() {
-    const merchantId = '00000000-0000-0000-0000-000000000001'; // 測試商家 ID
-    return this.request(`/api/v1/services?merchant_id=${merchantId}`);
+    const services = await this.request<any[]>('/merchant/services');
+    
+    // 轉換為前端期望的格式
+    return services.map(service => ({
+      id: service.id.toString(),
+      merchant_id: service.merchant_id,
+      name: service.name,
+      price: service.base_price,  // base_price → price
+      duration_minutes: service.duration_minutes,
+      is_active: service.is_active,
+      description: service.description || '',
+      category: service.category || '',
+      image: null
+    }));
   }
 
   async createService(serviceData: any) {
-    return this.request('/api/v1/services', {
+    return this.request('/merchant/services', {
       method: 'POST',
       body: JSON.stringify(serviceData),
     });
@@ -208,8 +237,7 @@ class AdminApiService {
 
   // 更新服務
   async updateService(serviceId: string, serviceData: any): Promise<any> {
-    const merchantId = this.getMerchantId();
-    return await this.request(`/api/v1/services/${serviceId}?merchant_id=${merchantId}`, {
+    return await this.request(`/merchant/services/${serviceId}`, {
       method: 'PUT',
       body: JSON.stringify(serviceData),
     });
@@ -217,8 +245,84 @@ class AdminApiService {
 
   // 刪除服務
   async deleteService(serviceId: string): Promise<any> {
-    const merchantId = this.getMerchantId();
-    return await this.request(`/api/v1/services/${serviceId}?merchant_id=${merchantId}`, {
+    return await this.request(`/merchant/services/${serviceId}`, {
+      method: 'DELETE',
+    });
+  }
+  
+  // 員工管理 API
+  async getStaff(): Promise<any[]> {
+    return this.request<any[]>('/merchant/staff');
+  }
+
+  async createStaff(staffData: {
+    name: string;
+    email?: string;
+    phone?: string;
+    skills?: number[];
+    is_active?: boolean;
+  }): Promise<any> {
+    return this.request('/merchant/staff', {
+      method: 'POST',
+      body: JSON.stringify(staffData),
+    });
+  }
+
+  async updateStaff(staffId: number, staffData: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    skills?: number[];
+    is_active?: boolean;
+  }): Promise<any> {
+    return this.request(`/merchant/staff/${staffId}`, {
+      method: 'PUT',
+      body: JSON.stringify(staffData),
+    });
+  }
+
+  async deleteStaff(staffId: number): Promise<void> {
+    await this.request(`/merchant/staff/${staffId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Staff Holiday API
+  async getStaffHolidays(startDate?: string, endDate?: string): Promise<any[]> {
+    let url = '/merchant/staff-holidays';
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    if (params.toString()) url += `?${params.toString()}`;
+    
+    return this.request<any[]>(url);
+  }
+
+  async createStaffHoliday(holidayData: {
+    staff_id: number;
+    holiday_date: string;
+    name: string;
+    is_recurring?: boolean;
+  }): Promise<any> {
+    return this.request('/merchant/staff-holidays', {
+      method: 'POST',
+      body: JSON.stringify(holidayData),
+    });
+  }
+
+  async updateStaffHoliday(holidayId: number, holidayData: {
+    holiday_date?: string;
+    name?: string;
+    is_recurring?: boolean;
+  }): Promise<any> {
+    return this.request(`/merchant/staff-holidays/${holidayId}`, {
+      method: 'PUT',
+      body: JSON.stringify(holidayData),
+    });
+  }
+
+  async deleteStaffHoliday(holidayId: number): Promise<void> {
+    await this.request(`/merchant/staff-holidays/${holidayId}`, {
       method: 'DELETE',
     });
   }

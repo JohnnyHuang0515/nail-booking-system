@@ -3,7 +3,7 @@ Catalog Context - Domain Layer - Aggregates
 Service 與 Staff 聚合
 """
 from dataclasses import dataclass, field
-from datetime import time
+from datetime import time, date
 from enum import Enum
 from typing import Optional
 from decimal import Decimal
@@ -263,4 +263,32 @@ class Staff:
     
     def __repr__(self) -> str:
         return f"<Staff(id={self.id}, name={self.name}, active={self.is_active}, skills={len(self.skills)})>"
+
+
+@dataclass
+class StaffHoliday:
+    """
+    美甲師休假 Domain Model
+    
+    每個美甲師可以獨立設定自己的休假
+    """
+    id: Optional[int]
+    staff_id: int
+    merchant_id: str
+    holiday_date: date
+    name: str
+    is_recurring: bool = False
+    staff_name: Optional[str] = None  # 美甲師名稱（用於顯示）
+    
+    def is_on_date(self, target_date: date) -> bool:
+        """
+        檢查此休假是否適用於給定日期。
+        如果 is_recurring 為 True，則只比較月份和日期。
+        否則，比較完整日期。
+        """
+        if self.is_recurring:
+            return (self.holiday_date.month == target_date.month and
+                    self.holiday_date.day == target_date.day)
+        else:
+            return self.holiday_date == target_date
 

@@ -11,7 +11,7 @@ import storageService from '../../services/storage';
 interface ConfirmationPageProps {
   selectedDate: string;
   selectedTime: string;
-  selectedService: any;
+  selectedServices: any[];
   lineUser?: any;
   onNext: (customerInfo: any) => void;
   onBack: () => void;
@@ -20,7 +20,7 @@ interface ConfirmationPageProps {
 export default function ConfirmationPage({ 
   selectedDate, 
   selectedTime, 
-  selectedService, 
+  selectedServices, 
   lineUser,
   onNext, 
   onBack 
@@ -130,12 +130,17 @@ export default function ConfirmationPage({
   };
 
   const calculateEndTime = (startTime: string, duration: number) => {
+    if (!startTime || !duration) return 'N/A';
     const [hours, minutes] = startTime.split(':').map(Number);
     const totalMinutes = hours * 60 + minutes + duration;
     const endHours = Math.floor(totalMinutes / 60);
     const endMinutes = totalMinutes % 60;
     return `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
   };
+  
+  // 計算總時長和總金額
+  const totalDuration = selectedServices.reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
+  const totalPrice = selectedServices.reduce((sum, s) => sum + (s.base_price || s.price || 0), 0);
 
   return (
     <div className="min-h-screen bg-background p-4">
@@ -161,36 +166,51 @@ export default function ConfirmationPage({
               <div>
                 <div className="font-medium">{formatDate(selectedDate)}</div>
                 <div className="text-sm text-muted-foreground">
-                  {selectedTime} - {calculateEndTime(selectedTime, selectedService.duration_minutes)}
+                  {selectedTime} - {calculateEndTime(selectedTime, totalDuration)}
                 </div>
               </div>
             </div>
 
-            {/* Service */}
-            <div className="flex items-start space-x-3 p-3 bg-muted rounded-lg">
-              <Sparkles className="h-5 w-5 text-primary mt-0.5" />
-              <div className="flex-1">
-                <div className="flex items-center space-x-2 mb-1">
-                  <span className="font-medium">{selectedService.name}</span>
-                  {selectedService.category && (
-                    <Badge className="bg-secondary text-secondary-foreground">
-                      {selectedService.category}
-                    </Badge>
-                  )}
+            {/* Services */}
+            <div className="space-y-2">
+              {selectedServices.map((service, index) => (
+                <div key={service.id} className="flex items-start space-x-3 p-3 bg-muted rounded-lg">
+                  <Sparkles className="h-5 w-5 text-primary mt-0.5" />
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <span className="font-medium">{service.name}</span>
+                      {service.category && (
+                        <Badge className="bg-secondary text-secondary-foreground">
+                          {service.category}
+                        </Badge>
+                      )}
+                    </div>
+                    {service.description && (
+                      <div className="text-sm text-muted-foreground mb-2">
+                        {service.description}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center text-muted-foreground">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {service.duration_minutes} 分鐘
+                      </div>
+                      <div className="font-medium text-primary">
+                        NT${service.base_price || service.price}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                {selectedService.description && (
-                  <div className="text-sm text-muted-foreground mb-2">
-                    {selectedService.description}
-                  </div>
-                )}
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center text-muted-foreground">
-                    <Clock className="h-3 w-3 mr-1" />
-                    {selectedService.duration_minutes} 分鐘
-                  </div>
-                  <div className="font-medium text-primary">
-                    NT${selectedService.price}
-                  </div>
+              ))}
+              
+              {/* 總計 */}
+              <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border-2 border-primary/20">
+                <div>
+                  <div className="font-medium text-foreground">總計</div>
+                  <div className="text-sm text-muted-foreground">{totalDuration} 分鐘</div>
+                </div>
+                <div className="font-bold text-primary text-xl">
+                  NT${totalPrice}
                 </div>
               </div>
             </div>

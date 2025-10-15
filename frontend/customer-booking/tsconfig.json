@@ -1,10 +1,10 @@
 {
   "compilerOptions": {
-    "target": "es2015",
+    "target": "es2017",
     "lib": [
       "dom",
       "dom.iterable",
-      "es6"
+      "es2017"
     ],
     "allowJs": true,
     "skipLibCheck": true,
@@ -19,7 +19,8 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "downlevelIteration": true
+    "downlevelIteration": true,
+    "types": ["node"]
   },
   "include": [
     "src"

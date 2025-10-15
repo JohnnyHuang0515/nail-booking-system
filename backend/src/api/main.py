@@ -63,6 +63,26 @@ except Exception as e:
     import traceback
     traceback.print_exc()
 
+# Billing API - 訂閱計費
+try:
+    from api.routers import billing_router
+    app.include_router(billing_router.router)
+    logger.info("✅ Billing router loaded")
+except Exception as e:
+    logger.error(f"❌ Failed to load billing router: {e}")
+    import traceback
+    traceback.print_exc()
+
+# Notification API - 通知推播
+try:
+    from api.routers import notification_router
+    app.include_router(notification_router.router)
+    logger.info("✅ Notification router loaded")
+except Exception as e:
+    logger.error(f"❌ Failed to load notification router: {e}")
+    import traceback
+    traceback.print_exc()
+
 # TODO: 新增系統管理員路由
 # app.include_router(admin_router.router)
 

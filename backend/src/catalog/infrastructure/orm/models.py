@@ -88,6 +88,7 @@ class StaffORM(Base):
     
     # 關聯
     working_hours = relationship("StaffWorkingHoursORM", back_populates="staff", cascade="all, delete-orphan")
+    holidays = relationship("StaffHolidayORM", back_populates="staff", cascade="all, delete-orphan")
     
     __table_args__ = (
         Index("idx_staff_merchant_active", "merchant_id", "is_active"),
@@ -120,21 +121,26 @@ class StaffWorkingHoursORM(Base):
     )
 
 
-class HolidayORM(Base):
-    """休假日 ORM 模型"""
-    __tablename__ = "holidays"
+class StaffHolidayORM(Base):
+    """美甲師休假 ORM 模型"""
+    __tablename__ = "staff_holidays"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
+    staff_id = Column(Integer, ForeignKey("staff.id", ondelete="CASCADE"), nullable=False)
     merchant_id = Column(UUID(as_uuid=False), nullable=False, index=True)
     
     holiday_date = Column(Date, nullable=False, comment="休假日期")
     name = Column(String(100), nullable=False, comment="休假名稱")
     is_recurring = Column(Boolean, nullable=False, default=False, comment="是否每年重複")
     
+    # 關聯
+    staff = relationship("StaffORM", back_populates="holidays")
+    
     __table_args__ = (
-        Index("idx_holidays_merchant_date", "merchant_id", "holiday_date"),
-        # 同一商家同一日期不可重複設定休假
-        Index("uq_holidays_merchant_date", "merchant_id", "holiday_date", unique=True),
-        {"comment": "休假日表"}
+        Index("idx_staff_holidays_staff_date", "staff_id", "holiday_date"),
+        Index("idx_staff_holidays_merchant_date", "merchant_id", "holiday_date"),
+        # 同一美甲師同一日期不可重複設定休假
+        Index("uq_staff_holidays_staff_date", "staff_id", "holiday_date", unique=True),
+        {"comment": "美甲師休假表"}
     )
 

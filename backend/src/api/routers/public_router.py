@@ -44,23 +44,19 @@ def get_merchant_service(db: Session = Depends(get_db)) -> MerchantService:
 
 def get_catalog_service(db: Session = Depends(get_db)) -> CatalogService:
     """Dependency: 建立 CatalogService"""
-    from catalog.infrastructure.repositories.sqlalchemy_holiday_repository import SQLAlchemyHolidayRepository
     service_repo = SQLAlchemyServiceRepository(db)
     staff_repo = SQLAlchemyStaffRepository(db)
-    holiday_repo = SQLAlchemyHolidayRepository(db)
-    return CatalogService(service_repo, staff_repo, holiday_repo)
+    return CatalogService(service_repo, staff_repo)
 
 
 def get_booking_service_for_slots(db: Session = Depends(get_db)) -> BookingService:
     """Dependency: 建立 BookingService（用於時段查詢）"""
-    from catalog.infrastructure.repositories.sqlalchemy_holiday_repository import SQLAlchemyHolidayRepository
     booking_repo = SQLAlchemyBookingRepository(db)
     booking_lock_repo = SQLAlchemyBookingLockRepository(db)
     
     service_repo = SQLAlchemyServiceRepository(db)
     staff_repo = SQLAlchemyStaffRepository(db)
-    holiday_repo = SQLAlchemyHolidayRepository(db)
-    catalog_service = CatalogService(service_repo, staff_repo, holiday_repo)
+    catalog_service = CatalogService(service_repo, staff_repo)
     
     return BookingService(booking_repo, booking_lock_repo, catalog_service)
 
@@ -304,13 +300,13 @@ async def get_merchant_holidays(
     catalog_service: CatalogService = Depends(get_catalog_service)
 ):
     """
-    取得商家的休假日列表（公開 API）
+    取得商家的美甲師休假日列表（公開 API）
     
     - **slug**: 商家 slug
     - **start_date**: 開始日期（可選）
     - **end_date**: 結束日期（可選）
     
-    返回該商家的休假日列表
+    返回該商家的所有美甲師休假日列表
     """
     try:
         merchant = merchant_service.get_merchant_by_slug(slug)
@@ -321,11 +317,18 @@ async def get_merchant_holidays(
         )
     
     try:
-        holidays = await catalog_service.list_holidays(merchant.id, start_date, end_date)
+        # 使用新的美甲師休假系統
+        holidays = await catalog_service.list_staff_holidays(
+            merchant_id=merchant.id,
+            start_date=start_date,
+            end_date=end_date
+        )
         
         return [
             {
                 "id": h.id,
+                "staff_id": h.staff_id,
+                "staff_name": h.staff_name,
                 "holiday_date": h.holiday_date.isoformat(),
                 "name": h.name,
                 "is_recurring": h.is_recurring
@@ -335,6 +338,6 @@ async def get_merchant_holidays(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"查詢休假日失敗: {str(e)}"
+            detail=f"查詢美甲師休假日失敗: {str(e)}"
         )
 

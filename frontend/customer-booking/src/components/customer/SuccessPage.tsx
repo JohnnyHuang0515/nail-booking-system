@@ -8,7 +8,7 @@ import liffService from '../../services/liff';
 interface SuccessPageProps {
   selectedDate: string;
   selectedTime: string;
-  selectedService: any;
+  selectedServices: any[];
   customerInfo: any;
   bookingResult?: any; // 從後端 API 返回的預約結果
   onNewBooking: () => void;
@@ -17,7 +17,7 @@ interface SuccessPageProps {
 export default function SuccessPage({ 
   selectedDate, 
   selectedTime, 
-  selectedService, 
+  selectedServices, 
   customerInfo,
   bookingResult,
   onNewBooking 
@@ -31,32 +31,40 @@ export default function SuccessPage({
     });
   };
 
-  const calculateEndTime = (startTime: string, duration: number) => {
-    // 處理時間格式，支援 HH:MM 和 HH:MM:SS
-    if (!startTime || !duration) return 'N/A';
-    
-    const timeParts = startTime.split(':');
-    const hours = parseInt(timeParts[0], 10);
-    const minutes = parseInt(timeParts[1], 10);
-    
-    if (isNaN(hours) || isNaN(minutes) || isNaN(duration)) return 'N/A';
-    
-    const totalMinutes = hours * 60 + minutes + duration;
-    const endHours = Math.floor(totalMinutes / 60);
-    const endMinutes = totalMinutes % 60;
-    return `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
+  const formatTime = (isoDateTime: string) => {
+    if (!isoDateTime) return 'N/A';
+    try {
+      return new Date(isoDateTime).toLocaleTimeString('zh-TW', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+    } catch {
+      return 'N/A';
+    }
   };
 
-  // 預約編號從後端 API 回應中取得
+  const formatDateTime = (isoDateTime: string) => {
+    if (!isoDateTime) return 'N/A';
+    try {
+      return new Date(isoDateTime).toLocaleDateString('zh-TW', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        weekday: 'long'
+      });
+    } catch {
+      return 'N/A';
+    }
+  };
+
+  // 從後端響應取得資料
   const bookingRef = bookingResult?.id || 'N/A';
-  
-  // 調試資訊
-  console.log('SuccessPage 資料檢查:');
-  console.log('- selectedService:', selectedService);
-  console.log('- selectedDate:', selectedDate);
-  console.log('- selectedTime:', selectedTime);
-  console.log('- customerInfo:', customerInfo);
-  console.log('- bookingResult:', bookingResult);
+  const displayDate = bookingResult?.start_at ? formatDateTime(bookingResult.start_at) : formatDate(selectedDate);
+  const displayStartTime = bookingResult?.start_at ? formatTime(bookingResult.start_at) : selectedTime;
+  const displayEndTime = bookingResult?.end_at ? formatTime(bookingResult.end_at) : 'N/A';
+  const displayPrice = bookingResult?.total_price || selectedServices.reduce((sum, s) => sum + (s.base_price || s.price || 0), 0);
+  const totalDuration = selectedServices.reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
 
   // 自動關閉 LIFF 視窗（3秒後）
   useEffect(() => {
@@ -97,34 +105,46 @@ export default function SuccessPage({
             <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg border border-green-200">
               <Calendar className="h-5 w-5 text-green-600" />
               <div>
-                <div className="font-medium text-green-800">{formatDate(selectedDate)}</div>
+                <div className="font-medium text-green-800">{displayDate}</div>
                 <div className="text-sm text-green-600">
-                  {selectedTime || 'N/A'} - {calculateEndTime(selectedTime, selectedService?.duration_minutes)}
+                  {displayStartTime} - {displayEndTime}
                 </div>
               </div>
             </div>
 
-            {/* Service */}
-            <div className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <Sparkles className="h-5 w-5 text-blue-600 mt-0.5" />
-              <div className="flex-1">
-                <div className="flex items-center space-x-2 mb-1">
-                  <span className="font-medium text-blue-800">{selectedService?.name || 'N/A'}</span>
-                  <Badge className="bg-blue-100 text-blue-700">
-                    美甲服務
-                  </Badge>
-                </div>
-                <div className="text-sm text-blue-600 mb-2">
-                  專業美甲服務
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center text-blue-600">
-                    <Clock className="h-3 w-3 mr-1" />
-                    {selectedService?.duration_minutes || 'N/A'} 分鐘
+            {/* Services */}
+            <div className="space-y-2">
+              {selectedServices.map((service, index) => (
+                <div key={service.id} className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <Sparkles className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <span className="font-medium text-blue-800">{service.name}</span>
+                      <Badge className="bg-blue-100 text-blue-700">
+                        {service.category || '美甲服務'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center text-blue-600">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {service.duration_minutes} 分鐘
+                      </div>
+                      <div className="font-medium text-blue-800">
+                        NT${service.base_price || service.price}
+                      </div>
+                    </div>
                   </div>
-                  <div className="font-medium text-blue-800">
-                    NT${selectedService?.price || 'N/A'}
-                  </div>
+                </div>
+              ))}
+              
+              {/* 總計 */}
+              <div className="flex items-center justify-between p-3 bg-green-100 rounded-lg border border-green-300">
+                <div>
+                  <div className="font-medium text-green-800">總計</div>
+                  <div className="text-sm text-green-600">{totalDuration} 分鐘</div>
+                </div>
+                <div className="font-bold text-green-800 text-xl">
+                  NT${displayPrice}
                 </div>
               </div>
             </div>

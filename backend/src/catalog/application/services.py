@@ -6,7 +6,7 @@ from typing import Optional
 from datetime import date
 import logging
 
-from catalog.domain.models import Service, Staff, ServiceOption
+from catalog.domain.models import Service, Staff, ServiceOption, StaffHoliday
 from catalog.domain.holiday import Holiday
 from catalog.domain.repositories import ServiceRepository, StaffRepository
 from catalog.domain.exceptions import (
@@ -384,4 +384,189 @@ class CatalogService:
         success = self.holiday_repo.delete(holiday_id, merchant_id)
         if not success:
             raise ValueError(f"Holiday not found: {holiday_id}")
+    
+    # ========== Staff Working Hours Management ==========
+    
+    async def clear_staff_working_hours(self, staff_id: int, merchant_id: str) -> None:
+        """
+        清除員工的所有工時設定
+        
+        Args:
+            staff_id: 員工 ID
+            merchant_id: 商家 ID
+        """
+        staff = await self.get_staff(staff_id, merchant_id)
+        if not staff:
+            raise ValueError(f"Staff not found: {staff_id}")
+        
+        # 清除現有工時
+        self.staff_repo.clear_working_hours(staff_id)
+    
+    async def add_staff_working_hours(
+        self,
+        staff_id: int,
+        merchant_id: str,
+        day_of_week: int,
+        start_time: str,
+        end_time: str
+    ) -> None:
+        """
+        新增員工工時
+        
+        Args:
+            staff_id: 員工 ID
+            merchant_id: 商家 ID
+            day_of_week: 星期幾 (0=Monday, 6=Sunday)
+            start_time: 開始時間 (HH:MM)
+            end_time: 結束時間 (HH:MM)
+        """
+        staff = await self.get_staff(staff_id, merchant_id)
+        if not staff:
+            raise ValueError(f"Staff not found: {staff_id}")
+        
+        # 新增工時
+        self.staff_repo.add_working_hours(staff_id, day_of_week, start_time, end_time)
+    
+    # ========== Staff Holiday Management ==========
+    
+    async def create_staff_holiday(
+        self,
+        merchant_id: str,
+        staff_id: int,
+        holiday_date: date,
+        name: str,
+        is_recurring: bool = False
+    ) -> 'StaffHoliday':
+        """
+        創建美甲師休假
+        
+        Args:
+            merchant_id: 商家 ID
+            staff_id: 美甲師 ID
+            holiday_date: 休假日期
+            name: 休假名稱
+            is_recurring: 是否每年重複
+        
+        Returns:
+            StaffHoliday: 創建的休假
+        """
+        # 驗證美甲師存在
+        staff = await self.get_staff(staff_id, merchant_id)
+        if not staff:
+            raise ValueError(f"Staff not found: {staff_id}")
+        
+        # 檢查是否已有相同日期的休假
+        existing_holidays = await self.list_staff_holidays(
+            merchant_id=merchant_id,
+            staff_id=staff_id,
+            start_date=holiday_date,
+            end_date=holiday_date
+        )
+        
+        if existing_holidays:
+            raise ValueError(f"美甲師 {staff.name} 在 {holiday_date} 已有休假設定")
+        
+        holiday = StaffHoliday(
+            id=None,
+            staff_id=staff_id,
+            merchant_id=merchant_id,
+            holiday_date=holiday_date,
+            name=name,
+            is_recurring=is_recurring
+        )
+        
+        # 設定美甲師名稱（用於返回）
+        holiday.staff_name = staff.name
+        
+        return self.staff_repo.save_staff_holiday(holiday)
+    
+    async def list_staff_holidays(
+        self,
+        merchant_id: str,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
+        staff_id: Optional[int] = None
+    ) -> list['StaffHoliday']:
+        """
+        查詢美甲師休假
+        
+        Args:
+            merchant_id: 商家 ID
+            start_date: 開始日期（可選）
+            end_date: 結束日期（可選）
+            staff_id: 美甲師 ID（可選）
+        
+        Returns:
+            list[StaffHoliday]: 休假列表
+        """
+        return self.staff_repo.find_staff_holidays(
+            merchant_id=merchant_id,
+            start_date=start_date,
+            end_date=end_date,
+            staff_id=staff_id
+        )
+    
+    async def get_staff_holiday(self, holiday_id: int, merchant_id: str) -> 'StaffHoliday':
+        """
+        取得單一美甲師休假
+        
+        Args:
+            holiday_id: 休假 ID
+            merchant_id: 商家 ID
+        
+        Returns:
+            StaffHoliday: 休假
+        
+        Raises:
+            ValueError: 休假不存在
+        """
+        holiday = self.staff_repo.find_staff_holiday_by_id(holiday_id, merchant_id)
+        if not holiday:
+            raise ValueError(f"Staff holiday not found: {holiday_id}")
+        
+        return holiday
+    
+    async def update_staff_holiday(
+        self,
+        holiday_id: int,
+        merchant_id: str,
+        holiday_date: Optional[date] = None,
+        name: Optional[str] = None,
+        is_recurring: Optional[bool] = None
+    ) -> 'StaffHoliday':
+        """
+        更新美甲師休假
+        
+        Args:
+            holiday_id: 休假 ID
+            merchant_id: 商家 ID
+            holiday_date: 休假日期（可選）
+            name: 休假名稱（可選）
+            is_recurring: 是否每年重複（可選）
+        
+        Returns:
+            StaffHoliday: 更新後的休假
+        """
+        holiday = await self.get_staff_holiday(holiday_id, merchant_id)
+        
+        if holiday_date is not None:
+            holiday.holiday_date = holiday_date
+        if name is not None:
+            holiday.name = name
+        if is_recurring is not None:
+            holiday.is_recurring = is_recurring
+        
+        return self.staff_repo.save_staff_holiday(holiday)
+    
+    async def delete_staff_holiday(self, holiday_id: int, merchant_id: str) -> None:
+        """
+        刪除美甲師休假
+        
+        Args:
+            holiday_id: 休假 ID
+            merchant_id: 商家 ID
+        """
+        success = self.staff_repo.delete_staff_holiday(holiday_id, merchant_id)
+        if not success:
+            raise ValueError(f"Staff holiday not found: {holiday_id}")
 

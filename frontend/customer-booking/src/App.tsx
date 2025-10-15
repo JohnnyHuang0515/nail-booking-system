@@ -8,61 +8,80 @@ import LoadingPage from './components/customer/LoadingPage';
 import ErrorPage from './components/customer/ErrorPage';
 import customerApiService from './services/api';
 import liffService from './services/liff';
+import authService from './services/auth';
 
 type BookingStep = 'date' | 'time' | 'service' | 'confirmation' | 'success' | 'loading' | 'error';
 
 export default function App() {
-  const [currentStep, setCurrentStep] = useState<BookingStep>('date');
+  const [currentStep, setCurrentStep] = useState<BookingStep>('loading');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
-  const [selectedService, setSelectedService] = useState<any>(null);
+  const [selectedServices, setSelectedServices] = useState<any[]>([]);
+  const [selectedStaffId, setSelectedStaffId] = useState<number>(1); // 預設員工 ID
   const [customerInfo, setCustomerInfo] = useState<any>(null);
   const [bookingResult, setBookingResult] = useState<any>(null);
   const [lineUser, setLineUser] = useState<any>(null);
-  const [merchantContext, setMerchantContext] = useState<any>(null);
-  const [isLiffReady, setIsLiffReady] = useState(false);
+  const [merchantInfo, setMerchantInfo] = useState<any>(null);
+  const [isReady, setIsReady] = useState(false);
 
-  // 初始化 LIFF
+  // 初始化：LIFF + 認證 + 商家資訊
   useEffect(() => {
-    const initLiff = async () => {
+    const initialize = async () => {
       try {
-        const success = await liffService.initialize();
+        setCurrentStep('loading');
         
-        // 獲取商家上下文
-        const merchantContext = liffService.getMerchantContext();
-        if (merchantContext) {
-          setMerchantContext(merchantContext);
-          // 設定 API 服務的商家 ID
-          customerApiService.setMerchantId(merchantContext.merchant_id);
-          console.log('商家上下文已設定:', merchantContext);
-        } else {
-          // 如果沒有商家上下文，使用正確的商家 ID
-          const defaultMerchantId = '00000000-0000-0000-0000-000000000001';
-          customerApiService.setMerchantId(defaultMerchantId);
-          console.log('使用預設商家 ID:', defaultMerchantId);
-        }
+        // 1. 初始化 LIFF
+        const liffSuccess = await liffService.initialize();
+        let userProfile = null;
         
-        if (success) {
-          const userProfile = liffService.getUserProfile();
+        if (liffSuccess) {
+          userProfile = liffService.getUserProfile();
           setLineUser(userProfile);
-          console.log('LIFF 初始化成功，用戶資料:', userProfile);
+          console.log('✅ LIFF 初始化成功，用戶:', userProfile?.displayName);
+          
+          // 2. 認證 LINE 用戶
+          if (userProfile) {
+            const authResult = await authService.authenticateLineUser(userProfile);
+            if (!authResult.success) {
+              console.error('❌ 認證失敗:', authResult.error);
+              setCurrentStep('error');
+              return;
+            }
+            console.log('✅ 用戶認證成功');
+          }
+        } else {
+          console.log('⚠️  非 LIFF 環境或未登入');
         }
         
-        setIsLiffReady(true);
+        // 3. 載入商家資訊
+        try {
+          const merchant = await customerApiService.getMerchantInfo();
+          setMerchantInfo(merchant);
+          customerApiService.setMerchantId(merchant.id);
+          customerApiService.setMerchantSlug(merchant.slug);
+          console.log('✅ 商家資訊已載入:', merchant.name);
+        } catch (error) {
+          console.error('⚠️  載入商家資訊失敗，使用預設值:', error);
+          // 使用預設值
+          customerApiService.setMerchantId('00000000-0000-0000-0000-000000000001');
+          customerApiService.setMerchantSlug('nail-abc');
+        }
+        
+        setIsReady(true);
+        setCurrentStep('date');
+        
       } catch (error) {
-        console.error('LIFF 初始化失敗:', error);
-        // 即使失敗也要設定預設商家 ID
-        const defaultMerchantId = '00000000-0000-0000-0000-000000000001';
-        customerApiService.setMerchantId(defaultMerchantId);
-        setIsLiffReady(true);
+        console.error('❌ 初始化失敗:', error);
+        setCurrentStep('error');
       }
     };
 
-    initLiff();
+    initialize();
   }, []);
 
-  const handleDateSelect = (date: string) => {
+  const handleDateSelect = (date: string, staffId: number) => {
     setSelectedDate(date);
+    setSelectedStaffId(staffId);
     setCurrentStep('time');
   };
 
@@ -72,8 +91,8 @@ export default function App() {
     setCurrentStep('service');
   };
 
-  const handleServiceSelect = (service: any, date: string, time: string) => {
-    setSelectedService(service);
+  const handleServiceSelect = (services: any[], date: string, time: string) => {
+    setSelectedServices(services);
     setSelectedDate(date);
     setSelectedTime(time);
     setCurrentStep('confirmation');
@@ -84,34 +103,36 @@ export default function App() {
     setCurrentStep('loading');
     
     try {
-      // 調試資訊
-      console.log('預約資料檢查:');
-      console.log('- selectedService:', selectedService);
-      console.log('- selectedDate:', selectedDate);
-      console.log('- selectedTime:', selectedTime);
-      console.log('- customerInfo:', info);
+      // 組合日期與時間為 ISO datetime
+      const startDateTime = new Date(`${selectedDate}T${selectedTime}:00+08:00`);
       
-      // 提交預約到後端API
-      const bookingData = {
-        customer_name: info.name,
-        customer_phone: info.phone,
-        customer_email: info.email,
-        service_id: selectedService?.id,
-        appointment_date: selectedDate,
-        appointment_time: selectedTime,
-        notes: info.notes,
-        // 包含 LINE 用戶資訊
-        line_user_id: lineUser?.userId,
-        line_display_name: lineUser?.displayName,
-        line_picture_url: lineUser?.pictureUrl
+      // 建立預約請求（符合後端 DTO）
+      const bookingRequest = {
+        merchant_id: customerApiService.getMerchantId(),
+        customer: {
+          line_user_id: lineUser?.userId,
+          name: info.name,
+          phone: info.phone,
+          email: info.email || undefined,
+        },
+        staff_id: selectedStaffId,
+        start_at: startDateTime.toISOString(),
+        items: selectedServices.map(service => ({
+          service_id: service.id,
+          option_ids: [],
+        })),
+        notes: info.notes || undefined,
       };
 
-      const result = await customerApiService.submitBooking(bookingData);
-      console.log('預約成功:', result);
+      console.log('📤 提交預約:', bookingRequest);
+      
+      const result = await customerApiService.createBooking(bookingRequest);
+      console.log('✅ 預約成功:', result);
+      
       setBookingResult(result);
       setCurrentStep('success');
     } catch (error) {
-      console.error('預約失敗:', error);
+      console.error('❌ 預約失敗:', error);
       setCurrentStep('error');
     }
   };
@@ -120,7 +141,7 @@ export default function App() {
     setCurrentStep('date');
     setSelectedDate('');
     setSelectedTime('');
-    setSelectedService(null);
+    setSelectedServices([]);
     setCustomerInfo(null);
     setBookingResult(null);
   };
@@ -132,11 +153,12 @@ export default function App() {
   const renderStep = () => {
     switch (currentStep) {
       case 'date':
-        return <DateSelectionPage onNext={handleDateSelect} />;
+        return <DateSelectionPage onNext={handleDateSelect} selectedStaffId={selectedStaffId} />;
       case 'time':
         return (
           <TimeSelectionPage
             selectedDate={selectedDate}
+            selectedStaffId={selectedStaffId}
             onNext={handleTimeSelect}
             onBack={() => setCurrentStep('date')}
           />
@@ -155,7 +177,7 @@ export default function App() {
           <ConfirmationPage
             selectedDate={selectedDate}
             selectedTime={selectedTime}
-            selectedService={selectedService}
+            selectedServices={selectedServices}
             lineUser={lineUser}
             onNext={handleConfirmation}
             onBack={() => setCurrentStep('service')}
@@ -166,7 +188,7 @@ export default function App() {
           <SuccessPage
             selectedDate={selectedDate}
             selectedTime={selectedTime}
-            selectedService={selectedService}
+            selectedServices={selectedServices}
             customerInfo={customerInfo}
             bookingResult={bookingResult}
             onNewBooking={handleNewBooking}

@@ -7,6 +7,7 @@ import Appointments from './components/admin/Appointments';
 import Calendar from './components/admin/Calendar';
 import Schedule from './components/admin/Schedule';
 import Services from './components/admin/Services';
+import Staff from './components/admin/Staff';
 import Customers from './components/admin/Customers';
 
 export default function App() {
@@ -32,6 +33,8 @@ export default function App() {
         return <Schedule />;
       case 'services':
         return <Services />;
+      case 'staff':
+        return <Staff />;
       case 'customers':
         return <Customers />;
       default:

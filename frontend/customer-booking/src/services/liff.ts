@@ -6,13 +6,6 @@ interface LineProfile {
   statusMessage?: string;
 }
 
-interface LiffUser {
-  userId: string;
-  displayName: string;
-  pictureUrl?: string;
-  statusMessage?: string;
-}
-
 interface MerchantContext {
   merchant_id: string;
   merchant_name: string;
