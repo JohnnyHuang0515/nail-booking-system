@@ -1,33 +1,55 @@
-/**
- * 系統管理員認證 Hook
- */
-
 import { useState, useEffect, useCallback } from 'react';
-import systemAdminApiService from '../services/api';
+import adminApiService from '../services/api';
+
+interface MerchantData {
+  id: string;
+  name: string;
+  email: string;
+  line_channel_id: string;
+  liff_id: string;
+  timezone: string;
+  is_active: boolean;
+}
 
 interface UserData {
   id: string;
   email: string;
   name: string;
+  merchant_id: string;
   role: string;
   is_active: boolean;
 }
 
 export function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [merchantData, setMerchantData] = useState<MerchantData | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const logout = () => {
+    localStorage.removeItem('merchant_token');
+    localStorage.removeItem('merchant_data');
+    localStorage.removeItem('user_data');
+    setIsAuthenticated(false);
+    setMerchantData(null);
+    setUserData(null);
+  };
+
   const login = async (email: string, password: string) => {
     try {
-      const response = await systemAdminApiService.login(email, password);
+      const response = await adminApiService.login(email, password);
+      
       if (response.access_token) {
-        localStorage.setItem('system_admin_token', response.access_token);
-        localStorage.setItem('system_admin_user', JSON.stringify(response.user));
+        localStorage.setItem('merchant_token', response.access_token);
+        localStorage.setItem('merchant_data', JSON.stringify(response.user));
+        localStorage.setItem('user_data', JSON.stringify(response.user));
         
-        systemAdminApiService.setAuthToken(response.access_token);
+        // 設定 API 服務的認證 token
+        adminApiService.setAuthToken(response.access_token);
+        adminApiService.setMerchantId(response.user.merchant_id);
         
         setUserData(response.user);
+        setMerchantData(response.user); // 使用 user 資料作為 merchant 資料
         setIsAuthenticated(true);
         
         return { success: true, user: response.user };
@@ -36,46 +58,90 @@ export function useAuth() {
       }
     } catch (error: any) {
       console.error('Login failed:', error);
-      return { success: false, error: error.message || '登入失敗' };
+      return { 
+        success: false, 
+        error: error.message || '登入失敗' 
+      };
     }
   };
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('system_admin_token');
-    localStorage.removeItem('system_admin_user');
-    systemAdminApiService.setAuthToken('');
-    setUserData(null);
-    setIsAuthenticated(false);
-  }, []);
-
-  const checkAuthStatus = useCallback(() => {
-    const token = localStorage.getItem('system_admin_token');
-    const storedUserData = localStorage.getItem('system_admin_user');
-    
-    if (token && storedUserData) {
-      try {
-        systemAdminApiService.setAuthToken(token);
-        
-        const user = JSON.parse(storedUserData);
-        setUserData(user);
-        setIsAuthenticated(true);
-      } catch (error) {
-        console.error('解析用戶資料失敗:', error);
-        logout();
-      }
+  const register = async (userData: {
+    email: string;
+    password: string;
+    name: string;
+  }) => {
+    try {
+      const response = await adminApiService.register(userData);
+      return { success: true, data: response };
+    } catch (error: any) {
+      console.error('Registration failed:', error);
+      return { 
+        success: false, 
+        error: error.message || '註冊失敗' 
+      };
     }
-    setLoading(false);
-  }, [logout]);
+  };
 
+  const getCurrentUser = async () => {
+    try {
+      const user = await adminApiService.getCurrentUser();
+      setUserData(user);
+      return user;
+    } catch (error) {
+      console.error('Failed to get current user:', error);
+      logout();
+      throw error;
+    }
+  };
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('merchant_token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  // 初始化認證狀態
   useEffect(() => {
-    checkAuthStatus();
-  }, [checkAuthStatus]);
+    const initAuth = async () => {
+      const token = localStorage.getItem('merchant_token');
+      const storedMerchantData = localStorage.getItem('merchant_data');
+      const storedUserData = localStorage.getItem('user_data');
+
+      if (token && storedMerchantData && storedUserData) {
+        try {
+          adminApiService.setAuthToken(token);
+          
+          const merchantData = JSON.parse(storedMerchantData);
+          const userData = JSON.parse(storedUserData);
+          
+          adminApiService.setMerchantId(userData.merchant_id);
+          
+          setMerchantData(merchantData);
+          setUserData(userData);
+          setIsAuthenticated(true);
+          
+          // 驗證 token 是否仍然有效
+          await getCurrentUser();
+        } catch (error) {
+          console.error('Token validation failed:', error);
+          logout();
+        }
+      }
+      
+      setLoading(false);
+    };
+
+    initAuth();
+  }, []);
 
   return {
     isAuthenticated,
+    merchantData,
     userData,
     loading,
     login,
+    register,
     logout,
+    getCurrentUser,
+    getAuthHeaders
   };
 }

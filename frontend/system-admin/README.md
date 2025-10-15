@@ -1,46 +1,42 @@
-# Getting Started with Create React App
+# 美甲預約系統 - 管理後台
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+這是美甲預約系統的管理後台應用，提供以下功能：
 
-## Available Scripts
+## 功能特色
 
-In the project directory, you can run:
+- 📊 **儀表板** - 查看今日預約、收入統計等
+- 📅 **行事曆管理** - 視覺化預約管理
+- ⏰ **預約管理** - 新增、編輯、取消預約
+- 🕐 **時段管理** - 設定營業時間和休假日
+- ✂️ **服務管理** - 管理服務項目和價格
+- 👥 **顧客管理** - 顧客資料和消費記錄
 
-### `npm start`
+## 技術規格
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+- React 18 + TypeScript
+- Tailwind CSS + shadcn/ui
+- Lucide React 圖標
+- React Hook Form
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## 開發指令
 
-### `npm test`
+```bash
+# 安裝依賴
+npm install
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+# 啟動開發伺服器
+npm start
 
-### `npm run build`
+# 建置生產版本
+npm run build
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+# 執行測試
+npm test
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## 部署
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+建置完成後，將 `build/` 目錄部署到您的網頁伺服器。
 
-### `npm run eject`
+建議部署到子域名如：`admin.yourdomain.com`
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
