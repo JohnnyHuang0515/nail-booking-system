@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import systemAdminApiService from '../services/api';
+import systemAdminApiService from '../services/api-system-admin';
 
 interface UserData {
   id: string;

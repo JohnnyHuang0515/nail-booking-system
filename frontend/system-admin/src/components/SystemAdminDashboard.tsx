@@ -3,8 +3,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../hooks/useAuth';
-import systemAdminApiService from '../services/api';
+import { useAuth } from '../hooks/useAuth-system-admin';
+import systemAdminApiService from '../services/api-system-admin';
 
 const styles = {
   container: {
