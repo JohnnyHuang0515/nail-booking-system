@@ -7,11 +7,7 @@ import { Alert, AlertDescription } from '../ui/alert';
 import { User, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
-interface LoginPageProps {
-  onLoginSuccess: (merchantData: any) => void;
-}
-
-export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
+export default function LoginPage() {
   const [account, setAccount] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -34,8 +30,9 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
       const result = await login(account, password);
       
       if (result && result.success) {
-        // 登入成功，useAuth hook 會處理狀態更新
-        onLoginSuccess(result);
+        // 登入成功，useAuth hook 已經處理了狀態更新
+        console.log('Login successful:', result);
+        // 不需要額外處理，App.tsx 會根據 isAuthenticated 狀態自動跳轉
       } else {
         setError(result?.error || '登入失敗');
       }

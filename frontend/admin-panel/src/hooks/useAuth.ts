@@ -49,9 +49,12 @@ export function useAuth() {
         adminApiService.setMerchantId(response.user.merchant_id);
         
         setUserData(response.user);
+        setMerchantData(response.user); // 使用 user 資料作為 merchant 資料
         setIsAuthenticated(true);
         
-        return { success: true };
+        return { success: true, user: response.user };
+      } else {
+        return { success: false, error: '登入失敗' };
       }
     } catch (error: any) {
       console.error('Login failed:', error);

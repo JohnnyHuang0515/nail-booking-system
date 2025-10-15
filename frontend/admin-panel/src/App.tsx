@@ -14,12 +14,7 @@ import Notifications from './components/admin/Notifications';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
-  const { isAuthenticated, merchantData, loading, login, logout } = useAuth();
-
-  const handleLoginSuccess = (result: any) => {
-    // useAuth hook 已經處理了登入狀態，這裡不需要額外處理
-    console.log('Login successful:', result);
-  };
+  const { isAuthenticated, merchantData, loading, logout } = useAuth();
 
   const renderPage = () => {
     switch (currentPage) {
@@ -55,7 +50,7 @@ export default function App() {
   }
 
   if (!isAuthenticated) {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+    return <LoginPage />;
   }
 
   return (
